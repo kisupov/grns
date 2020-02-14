@@ -1,0 +1,25 @@
+/*
+ *  The set of RNS moduli and other parameters of the GRNS library
+ */
+
+#ifndef GRNS_PARAMS_H
+#define GRNS_PARAMS_H
+
+#define RNS_MODULI_SIZE (32)
+
+#define RNS_PARALLEL_REDUCTION_IDX (16)
+
+#define RNS_MODULI_PRODUCT_LOG2 (512)
+
+#define RNS_P2_SCALING_THRESHOLD (30)
+
+#define RNS_EVAL_RELATIVE_ERROR (0.0000001)
+
+const int RNS_MODULI[] = {65533,65535,65537,65539,65543,65549,65551,65557,
+                          65561,65563,65567,65573,65579,65581,65587,65591,
+                          65597,65599,65609,65617,65621,65623,65627,65629,
+                          65633,65641,65647,65651,65657,65669,65677,65683};
+
+#define EMPLOY_STD_FMA false
+
+#endif  //GRNS_PARAMS_H
