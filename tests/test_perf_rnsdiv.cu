@@ -12,7 +12,7 @@
 #include "timers.cuh"
 
 
-#define ITERATIONS 1
+#define ITERATIONS 10
 #define RNS_MODULI_SIZE_LOG2 3
 
 
@@ -26,7 +26,7 @@
 typedef multi_prec<CAMPARY_PRECISION> bignum_t;
 
 /*
- * Routine that extracts the most-significant bit of bignum_t x. It should be equivalent with floor(log_2(x))
+ * Routine that extracts the most-significant bit of bignum_t x. It should be equivalent with floor(log_2(x)) +/- 1
  */
 DEVICE_CUDA_FORCEINLINE static int msb(bignum_t x) {
     //We assume that the input is a number represented as a set of non-overlapped floating-point expansions,
@@ -58,8 +58,11 @@ DEVICE_CUDA_FORCEINLINE static int higherPow(int * x){
     //Computing the most significant bit of s[0]
     if (threadIdx.x == 0) {
         //Discard the integer part
-        while(s[0] >= 1){
-            s[0] -= 1;
+        for(int i = RNS_MODULI_SIZE - 1; i > 0; i--){
+            if(s[0] >= i){
+                s[0] -= i;
+                break;
+            }
         }
     }
     __syncthreads();
@@ -94,7 +97,7 @@ DEVICE_CUDA_FORCEINLINE static void hiasatDivision(int *q, int *r, int *x, int *
    if(j == k){
        shared[threadIdx.x] = cuda::mod_psub(r[threadIdx.x], ld, modulus); //shared = r - d
         k = higherPow(shared); // most significand non-zero bit in the remainder (shared)
-        if(k < j){
+        if(k < -1){
             q[threadIdx.x] = cuda::mod_add(q[threadIdx.x], 1, modulus);
             r[threadIdx.x] = cuda::mod_psub(r[threadIdx.x], ld, modulus);
         }
@@ -205,6 +208,7 @@ static void run_test(int iterations) {
 
     //Generate inputs
     fill_random_array(hx, iterations, BND_RNS_MODULI_PRODUCT);
+    waitFor(5);
     fill_random_array(hd, iterations, BND_RNS_MODULI_PRODUCT_SQRT);
 
     //Convert to the RNS
