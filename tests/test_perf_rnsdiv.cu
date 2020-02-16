@@ -12,17 +12,16 @@
 #include "timers.cuh"
 
 
-#define ITERATIONS 10
-#define RNS_MODULI_SIZE_LOG2 3
-
-
+#define ITERATIONS 1000
 
 /***
  * The RNS division algorithm proposed by Hiasat and Abdel-Aty-Zohdy
  * Ahmad A. Hiasat, Hoda S. Abdel-Aty-Zohdy. Design and Implementation of An RNS Division Algorithm
  * Parallel implementation of the Realization II
  ***/
-#define CAMPARY_PRECISION (RNS_MODULI_PRODUCT_LOG2 + RNS_MODULI_SIZE_LOG2)/53 + 1
+#define RNS_MODULI_SIZE_LOG2 4
+#define CAMPARY_PRECISION (RNS_MODULI_PRODUCT_LOG2 + RNS_MODULI_SIZE_LOG2) %53 ? \
+(int)((RNS_MODULI_PRODUCT_LOG2 + RNS_MODULI_SIZE_LOG2)/53 + 1) : (RNS_MODULI_PRODUCT_LOG2 + RNS_MODULI_SIZE_LOG2)/53
 typedef multi_prec<CAMPARY_PRECISION> bignum_t;
 
 /*
@@ -44,9 +43,8 @@ DEVICE_CUDA_FORCEINLINE static int msb(bignum_t x) {
 DEVICE_CUDA_FORCEINLINE static int higherPow(int * x){
     //Computing the full-precision fractional representation
     __shared__ bignum_t s[RNS_MODULI_SIZE];
-    bignum_t modulus = (double)cuda::RNS_MODULI[threadIdx.x];
     bignum_t piece = (double)cuda::mod_mul(x[threadIdx.x], cuda::RNS_PART_MODULI_PRODUCT_INVERSE[threadIdx.x], cuda::RNS_MODULI[threadIdx.x]);
-    s[threadIdx.x] = piece / modulus;
+    divExpans_d<CAMPARY_PRECISION, CAMPARY_PRECISION>(s[threadIdx.x], piece, (double)cuda::RNS_MODULI[threadIdx.x]);
     __syncthreads();
     //Parallel reduction
     for (unsigned int i = RNS_PARALLEL_REDUCTION_IDX; i > 0; i >>= 1) {
