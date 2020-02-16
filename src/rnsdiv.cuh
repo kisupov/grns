@@ -201,6 +201,7 @@ namespace cuda {
         //Compute the RNS interval evaluations for d and r
         cuda::rns_eval_compute_parallel(&deval.low, &deval.upp, d);
         cuda::rns_eval_compute_parallel(&reval.low, &reval.upp, r);
+        __syncthreads();
 
         //Main division loop
         while (cuda::er_ucmp(&reval.low, &deval.upp) >= 0) {
@@ -257,6 +258,7 @@ namespace cuda {
         //Compute the RNS interval evaluations for d and r
         cuda::rns_eval_compute_parallel(&deval.low, &deval.upp, d);
         cuda::rns_eval_compute_parallel(&reval.low, &reval.upp, r);
+        __syncthreads();
 
         //Main division loop
         while (cuda::er_ucmp(&reval.low, &deval.upp) >= 0) {
