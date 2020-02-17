@@ -14,7 +14,7 @@ GRNS is designed for large RNS dynamic ranges, which significantly exceed the us
 (say hundreds and thousands of bits). There are no special restrictions on the moduli sets and 
 the magnitude of numbers in RNS representation. Some predefined moduli sets are located in `/src/params`.
 
-GRNS can be freely used in various applications, e.g. asymmetric, ECC, and homomorphic cryptography. 
+GRNS can be freely used in various software-based RNS applications, e.g. RSA, Diffie-Hellman, and elliptic curve cryptography. 
 Currently, the algorithms implemented in GRNS are used in a multiple-precision GPU accelerated BLAS library; 
 see https://github.com/kisupov/mpres-blas.
 

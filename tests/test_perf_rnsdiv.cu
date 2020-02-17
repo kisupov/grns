@@ -19,7 +19,7 @@
  * Ahmad A. Hiasat, Hoda S. Abdel-Aty-Zohdy. Design and Implementation of An RNS Division Algorithm
  * Parallel implementation of the Realization II
  ***/
-#define RNS_MODULI_SIZE_LOG2 4
+#define RNS_MODULI_SIZE_LOG2 3
 #define CAMPARY_PRECISION (RNS_MODULI_PRODUCT_LOG2 + RNS_MODULI_SIZE_LOG2) %53 ? \
 (int)((RNS_MODULI_PRODUCT_LOG2 + RNS_MODULI_SIZE_LOG2)/53 + 1) : (RNS_MODULI_PRODUCT_LOG2 + RNS_MODULI_SIZE_LOG2)/53
 typedef multi_prec<CAMPARY_PRECISION> bignum_t;
@@ -207,7 +207,7 @@ static void run_test(int iterations) {
     //Generate inputs
     fill_random_array(hx, iterations, BND_RNS_MODULI_PRODUCT);
     waitFor(5);
-    fill_random_array(hd, iterations, BND_RNS_MODULI_PRODUCT_SQRT);
+    fill_random_array(hd, iterations, BND_RNS_MODULI_PRODUCT);
 
     //Convert to the RNS
     for(int i = 0; i < iterations; i++){
