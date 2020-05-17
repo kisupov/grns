@@ -28,7 +28,7 @@ typedef multi_prec<CAMPARY_PRECISION> bignum_t;
  * Routine that extracts the most-significant bit of bignum_t x. It should be equivalent with floor(log_2(x)) +/- 1
  */
 DEVICE_CUDA_FORCEINLINE static int msb(bignum_t x) {
-    //We assume that the input is a number represented as a set of non-overlapped floating-point expansions,
+    //We assume that the input is a number represented as a non-overlapped floating-point expansion,
     //so the exponent of x.getData()[0] gives the correct result.
     RealIntUnion u;
     u.dvalue = x.getData()[0];
