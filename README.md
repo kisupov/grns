@@ -1,20 +1,20 @@
 # Library for computations in Residue Number System (RNS) using CUDA-enabled GPUs (GRNS)
-###### Version 0.1
+###### Version 1.0
 
-The following time-consuming (aka non-modular) operations in RNS are implemented in addition to simple addition, subtraction, and multiplication:
+The following time-consuming non-modular (aka inter-modulo) operations in [RNS](https://en.wikipedia.org/wiki/Residue_number_system) are implemented in addition to simple addition, subtraction, and multiplication:
 
 * magnitude comparison (`/src/rnscmp.cuh`)
 * general integer division (`/src/rnsdiv.cuh`)
 * power-of-two scaling (`/src/rnsscal.cuh`)
 
-To perform these operations, the interval evaluation of the fractional representation of an RNS number is computed (`/src/rnseval.cuh`).
+To perform these operations, the interval evaluation of the fractional representation of an RNS number is computed (see `/src/rnseval.cuh`).
 Both serial (single-threaded) and parallel (n-threaded) implementations of the above operations are available.
 
 GRNS is designed for large RNS dynamic ranges, which significantly exceed the usual precision of computers 
 (say hundreds and thousands of bits). There are no special restrictions on the moduli sets and 
 the magnitude of numbers in RNS representation. Some predefined moduli sets are located in `/src/params`.
 
-GRNS can be freely used in various software-based RNS applications, e.g. RSA, Diffie-Hellman, and elliptic curve cryptography. 
+GRNS can be freely used in various software-based RNS applications, e.g. RSA, Diffie-Hellman, and Elliptic curves. 
 Currently, the algorithms implemented in GRNS are used in a multiple-precision GPU accelerated BLAS library; 
 see https://github.com/kisupov/mpres-blas.
 
@@ -23,6 +23,10 @@ These are the GNU Multiple Precision Library (GMP) and the GNU MPFR Library (MPF
 For the division benchmark, the CAMPARY library is additionally required.
 
 For samples of usage, see `/tests`.
+
+### References
+
+1. K. Isupov, "Using floating-point intervals for non-modular computations in residue number system," IEEE Access, vol. 8, pp. 58603-58619, 2020, doi 10.1109/ACCESS.2020.2982365.
 
 
 *Link: http://github.com/kisupov/grns*
