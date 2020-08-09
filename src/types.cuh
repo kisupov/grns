@@ -29,4 +29,15 @@ typedef struct {
 
 typedef interval_t * interval_ptr;
 
+/*!
+ * Multiple-precision integer representation
+ */
+typedef struct {
+    int digits[RNS_MODULI_SIZE];  // Significand part of the number in RNS (residues)
+    int sign;                     // Sign
+    er_float_t eval[2];           // Interval evaluation of the significand: eval[0] - lower bound, eval[1] - upper bound
+} mp_int_t;
+
+typedef mp_int_t * mp_int_ptr;
+
 #endif //GRNS_TYPES_CUH

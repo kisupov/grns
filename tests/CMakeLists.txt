@@ -44,3 +44,8 @@ target_link_libraries(test_perf_rnsdiv gmp mpfr)
 add_executable(test_perf_rnscmp test_perf_rnscmp.cu)
 target_compile_options(test_perf_rnscmp PRIVATE  $<${cuda_lang}:$<BUILD_INTERFACE:${GLOBAL_COMPILE_OPTIONS}>>)
 target_link_libraries(test_perf_rnscmp gmp mpfr)
+
+# Test for checking the correctness of the multiple-precision integer routines
+add_executable(test_verify_mpint test_verify_mpint.cu)
+target_compile_options(test_verify_mpint PRIVATE $<${cuda_lang}:$<BUILD_INTERFACE:${GLOBAL_COMPILE_OPTIONS}>>)
+target_link_libraries(test_verify_mpint gmp mpfr)

@@ -252,7 +252,7 @@ GCC_FORCEINLINE void rns_from_binary(int * target, mpz_t x) {
 }
 
 /*
- * Converts x from the standard integer to RNS
+ * Converts a two's complement integer x to RNS
  * The result is stored in target
  */
 GCC_FORCEINLINE void rns_from_int(int *target, int x) {
