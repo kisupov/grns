@@ -74,8 +74,8 @@ void make_iteration(){
     cudaCheckErrors();
 
     //Generate inputs
-    fill_random_array(&hx, 1, BND_RNS_MODULI_PRODUCT);
-    fill_random_array(&hd, 1, BND_RNS_MODULI_PRODUCT_SQRT);
+    fill_random_array(&hx, 1, BND_RNS_MODULI_PRODUCT, false);
+    fill_random_array(&hd, 1, BND_RNS_MODULI_PRODUCT_SQRT, false);
 
     //Convert to the RNS
     rns_from_binary(hrx, hx);

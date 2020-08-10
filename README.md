@@ -1,5 +1,5 @@
 # Library for computations in Residue Number System (RNS) using CUDA-enabled GPUs (GRNS)
-###### Version 1.1.0, released 2020-08-09
+###### Version 1.1.1, released 2020-08-10
 
 The following time-consuming non-modular (aka inter-modulo) operations in [RNS](https://en.wikipedia.org/wiki/Residue_number_system) are implemented in addition to simple addition, subtraction, and multiplication:
 
@@ -18,7 +18,7 @@ Since version 1.1.0, GRNS supports multiple-precision integer arithmetic based o
 (see `mpint.cuh`). A multiple-precision integer is represented by the sign, the significand in RNS, 
 and the interval evaluation of the significand. Four basic arithmetic operations 
 (addition, subtraction, multiplication, and division) are supported for CPU and CUDA. 
-For samples of usage, see `tests/test_verify_mpint.cu`.
+For samples of usage, see `tests/test_verify_mpint.cu` and `tests/test_perf_mpint.cu`.
 
 GRNS can be freely used in various software-based RNS applications, e.g. RSA, Diffie-Hellman, and Elliptic curves. 
 Currently, the algorithms implemented in GRNS are used in a multiple-precision GPU accelerated BLAS library; 

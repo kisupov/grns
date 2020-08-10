@@ -18,6 +18,7 @@ mpz_t  RNS_PART_MODULI_PRODUCT[RNS_MODULI_SIZE]; // Partial products of moduli, 
 int    RNS_PART_MODULI_PRODUCT_INVERSE[RNS_MODULI_SIZE]; // Modulo m_i multiplicative inverses of M_i (i = 1,...,n)
 mpz_t  RNS_ORTHOGONAL_BASE[RNS_MODULI_SIZE]; // Orthogonal bases of the RNS, B_i = M_i * RNS_PART_MODULI_PRODUCT_INVERSE[i] (i = 1,...,n)
 int    RNS_ONE[RNS_MODULI_SIZE]; // 1 in the RNS
+double RNS_MODULI_RECIPROCAL[RNS_MODULI_SIZE]; // Array of 1 / RNS_MODULI[i]
 /*
  * Residue codes of 2^j (j = 0,....,RNS_MODULI_PRODUCT_LOG2).
  * Each j-th row contains ( 2^j mod m_1, 2^j mod m_2, 2^j mod m_3 ... )
@@ -338,6 +339,10 @@ void rns_const_init(){
     //Computing orthogonal bases
     for (int i = 0; i < RNS_MODULI_SIZE; i++) {
         mpz_mul_si(RNS_ORTHOGONAL_BASE[i], RNS_PART_MODULI_PRODUCT[i], RNS_PART_MODULI_PRODUCT_INVERSE[i]);
+    }
+    //Computing reciprocals for moduli
+    for (int i = 0; i < RNS_MODULI_SIZE; ++i) {
+        RNS_MODULI_RECIPROCAL[i] = (double) 1 / RNS_MODULI[i];
     }
     //Setting 1 in the RNS
     for(int i = 0; i < RNS_MODULI_SIZE; i++){

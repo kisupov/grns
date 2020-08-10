@@ -18,7 +18,8 @@ namespace Logger {
         TEST_VERIFY_RNSDIV,
         TEST_PERF_RNSDIV,
         TEST_PERF_CMP,
-        TEST_VERIFY_MPINT
+        TEST_VERIFY_MPINT,
+        TEST_PERF_MPINT
     };
 
     const char *testHeaderAsString(enum TestHeader header) {
@@ -39,6 +40,8 @@ namespace Logger {
                 return "Test for measure the performance of the RNS magnitude comparison algorithms";
             case TEST_VERIFY_MPINT:
                 return "Test for checking the correctness of the multiple-precision integer routines";
+            case TEST_PERF_MPINT:
+                return "Test for measure the performance of the multiple-precision integer routines";
         }
         return "";
     }

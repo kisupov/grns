@@ -63,6 +63,32 @@ GCC_FORCEINLINE int mod_mul(int x, int y, int m){
     return (int)r;
 }
 
+/*!
+ * Modulo m addition of x and y using the long data type
+ * for intermediate result to avoid overflow.
+ * In order to speedup computations, the modulo operation is replaced
+ * by multiplication by d = 1 / m.
+*/
+GCC_FORCEINLINE int mod_addf(const int x, const int y, const int m, const double d){
+    long r = (long)x + (long)y;
+    double quotient = (double) r * d;
+    int i = (int) quotient;
+    return (int) (r - (long) i * (long) m);
+}
+
+/*!
+ * Modulo m multiplication of x and y using the long data type
+ * for intermediate result to avoid overflow.
+ * In order to speedup computations, the modulo operation is replaced
+ * by multiplication by d = 1 / m.
+*/
+GCC_FORCEINLINE int mod_mulf(const int x, const int y, const int m, const double d){
+    long r = (long)x * (long)y;
+    double quotient = (double) r * d;
+    int i = (int) quotient;
+    return (int) (r - (long) i * (long) m);
+}
+
 /*
  * GPU functions
  */

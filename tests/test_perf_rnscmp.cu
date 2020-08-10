@@ -111,9 +111,9 @@ static void run_test(int iterations) {
     cudaCheckErrors();
 
     //Generate inputs
-    fill_random_array(hx, iterations, BND_RNS_MODULI_PRODUCT);
+    fill_random_array(hx, iterations, BND_RNS_MODULI_PRODUCT, false);
     waitFor(5);
-    fill_random_array(hy, iterations, BND_RNS_MODULI_PRODUCT);
+    fill_random_array(hy, iterations, BND_RNS_MODULI_PRODUCT, false);
 
     //Convert to the RNS
     for(int i = 0; i < iterations; i++){

@@ -78,8 +78,12 @@ GCC_FORCEINLINE void mpint_set_mpz(mp_int_ptr result, mpz_t x) {
     } else {
         result->sign = 1;
     }
-    rns_from_binary(result->digits, x);
+    mpz_t abs;
+    mpz_init(abs);
+    mpz_abs(abs, x);
+    rns_from_binary(result->digits, abs);
     rns_eval_compute(&result->eval[0], &result->eval[1], result->digits);
+    mpz_clear(abs);
 }
 
 /*!
@@ -155,34 +159,34 @@ GCC_FORCEINLINE void mpint_check_overflow(er_float_ptr lower, er_float_ptr upper
  * from the JPDC paper https://www.sciencedirect.com/science/article/pii/S0743731519303302
  */
 GCC_FORCEINLINE void mpint_add(mp_int_ptr result, mp_int_ptr x, mp_int_ptr y) {
-    int sign_x = x->sign;
-    int sign_y = y->sign;
-    er_float_t eval_x[2];
-    er_float_t eval_y[2];
-    eval_x[0] = x->eval[0];
-    eval_x[1] = x->eval[1];
-    eval_y[0] = y->eval[0];
-    eval_y[1] = y->eval[1];
+    int sx = x->sign;
+    int sy = y->sign;
+    er_float_t evx[2];
+    er_float_t evy[2];
+    evx[0] = x->eval[0];
+    evx[1] = x->eval[1];
+    evy[0] = y->eval[0];
+    evy[1] = y->eval[1];
 
-    int alpha = (1 - 2 * sign_x);
-    int beta = (1 - 2 * sign_y);
+    int alpha = (1 - 2 * sx);
+    int beta = (1 - 2 * sy);
 
     //Addition of the RNS significands
     for (int i = 0; i < RNS_MODULI_SIZE; i++) {
-        int residue = mod_add(alpha * x->digits[i], beta * y->digits[i], RNS_MODULI[i]);
+        int residue = mod_addf(alpha * x->digits[i], beta * y->digits[i], RNS_MODULI[i], RNS_MODULI_RECIPROCAL[i]);
         result->digits[i] = residue < 0 ? residue + RNS_MODULI[i] : residue;
     }
 
     //Change the signs of the endpoints of interval evaluation when the number is negative
     //The signs will not change when the number is positive
-    eval_x[0].frac *=  alpha;
-    eval_x[1].frac *=  alpha;
-    eval_y[0].frac *=  beta;
-    eval_y[1].frac *=  beta;
+    evx[0].frac *=  alpha;
+    evx[1].frac *=  alpha;
+    evy[0].frac *=  beta;
+    evy[1].frac *=  beta;
 
     //Interval addition
-    er_add_rd(&result->eval[0], &eval_x[sign_x], &eval_y[sign_y]);
-    er_add_ru(&result->eval[1], &eval_x[1 - sign_x], &eval_y[1 - sign_y]);
+    er_add_rd(&result->eval[0], &evx[sx], &evy[sy]);
+    er_add_ru(&result->eval[1], &evx[1 - sx], &evy[1 - sy]);
 
     //Restoring the negative result
     //int plus  = result->eval[0].frac >= 0 && result->eval[1].frac >= 0;
@@ -192,7 +196,7 @@ GCC_FORCEINLINE void mpint_add(mp_int_ptr result, mp_int_ptr x, mp_int_ptr y) {
     //when both plus and minus are equal to zero, the actual result is always non-negative.
     if(minus){
         for (int i = 0; i < RNS_MODULI_SIZE; i++) {
-            result->digits[i] = (RNS_MODULI[i] - result->digits[i]) % RNS_MODULI[i];
+            result->digits[i] = result->digits[i] == 0 ? 0 : (RNS_MODULI[i] - result->digits[i]);
         }
         er_float_t tmp = result->eval[0];
         result->eval[0].frac = -1 * result->eval[1].frac;
@@ -210,34 +214,34 @@ GCC_FORCEINLINE void mpint_add(mp_int_ptr result, mp_int_ptr x, mp_int_ptr y) {
  * from the JPDC paper https://www.sciencedirect.com/science/article/pii/S0743731519303302
  */
 GCC_FORCEINLINE void mpint_sub(mp_int_ptr result, mp_int_ptr x, mp_int_ptr y) {
-    int sign_x = x->sign;
-    int sign_y = y->sign ^ 1;
-    er_float_t eval_x[2];
-    er_float_t eval_y[2];
-    eval_x[0] = x->eval[0];
-    eval_x[1] = x->eval[1];
-    eval_y[0] = y->eval[0];
-    eval_y[1] = y->eval[1];
+    int sx = x->sign;
+    int sy = y->sign ^ 1;
+    er_float_t evx[2];
+    er_float_t evy[2];
+    evx[0] = x->eval[0];
+    evx[1] = x->eval[1];
+    evy[0] = y->eval[0];
+    evy[1] = y->eval[1];
 
-    int alpha = (1 - 2 * sign_x);
-    int beta = (1 - 2 * sign_y);
+    int alpha = (1 - 2 * sx);
+    int beta = (1 - 2 * sy);
 
     //Addition of the RNS significands
     for (int i = 0; i < RNS_MODULI_SIZE; i++) {
-        int residue = mod_add(alpha * x->digits[i], beta * y->digits[i], RNS_MODULI[i]);
+        int residue = mod_addf(alpha * x->digits[i], beta * y->digits[i], RNS_MODULI[i], RNS_MODULI_RECIPROCAL[i]);
         result->digits[i] = residue < 0 ? residue + RNS_MODULI[i] : residue;
     }
 
     //Change the signs of the endpoints of interval evaluation when the number is negative
     //The signs will not change when the number is positive
-    eval_x[0].frac *=  alpha;
-    eval_x[1].frac *=  alpha;
-    eval_y[0].frac *=  beta;
-    eval_y[1].frac *=  beta;
+    evx[0].frac *=  alpha;
+    evx[1].frac *=  alpha;
+    evy[0].frac *=  beta;
+    evy[1].frac *=  beta;
 
     //Interval addition
-    er_add_rd(&result->eval[0], &eval_x[sign_x], &eval_y[sign_y]);
-    er_add_ru(&result->eval[1], &eval_x[1 - sign_x], &eval_y[1 - sign_y]);
+    er_add_rd(&result->eval[0], &evx[sx], &evy[sy]);
+    er_add_ru(&result->eval[1], &evx[1 - sx], &evy[1 - sy]);
 
     //Restoring the negative result
     //int plus  = result->eval[0].frac >= 0 && result->eval[1].frac >= 0;
@@ -247,7 +251,7 @@ GCC_FORCEINLINE void mpint_sub(mp_int_ptr result, mp_int_ptr x, mp_int_ptr y) {
     //when both plus and minus are equal to zero, the actual result is always non-negative.
     if(minus){
         for (int i = 0; i < RNS_MODULI_SIZE; i++) {
-            result->digits[i] = (RNS_MODULI[i] - result->digits[i]) % RNS_MODULI[i];
+            result->digits[i] = result->digits[i] == 0 ? 0 : (RNS_MODULI[i] - result->digits[i]);
         }
         er_float_t tmp = result->eval[0];
         result->eval[0].frac = -1 * result->eval[1].frac;
@@ -268,7 +272,7 @@ GCC_FORCEINLINE void mpint_mul(mp_int_ptr result, mp_int_ptr x, mp_int_ptr y) {
     er_md_rd(&result->eval[0], &x->eval[0], &y->eval[0], &RNS_EVAL_UNIT.upp);
     er_md_ru(&result->eval[1], &x->eval[1], &y->eval[1], &RNS_EVAL_UNIT.low);
     for(int i = 0; i < RNS_MODULI_SIZE; i ++){
-        result->digits[i] = mod_mul(x->digits[i], y->digits[i], RNS_MODULI[i]);
+        result->digits[i] = mod_mulf(x->digits[i], y->digits[i], RNS_MODULI[i], RNS_MODULI_RECIPROCAL[i]);
     }
     result->sign = rns_check_zero(result->digits) ? 0 : x->sign ^ y->sign;
     mpint_check_overflow(&result->eval[0], & result->eval[1], "mpint_mul");
@@ -298,6 +302,18 @@ GCC_FORCEINLINE void mpint_div(mp_int_ptr result, mp_int_ptr x, mp_int_ptr y) {
 namespace cuda {
 
     /*!
+     * Set the value of result from x
+     */
+    DEVICE_CUDA_FORCEINLINE void mpint_set(mp_int_ptr result, mp_int_ptr x) {
+        for(int i = 0; i < RNS_MODULI_SIZE; i++){
+            result->digits[i] = x->digits[i];
+        }
+        result->sign = x->sign;
+        result->eval[0] = x->eval[1];
+        result->eval[1] = x->eval[1];
+    }
+
+    /*!
      * Overflow detection using the interval evaluation of the result
      */
     DEVICE_CUDA_FORCEINLINE void mpint_check_overflow(er_float_ptr lower, er_float_ptr upper, const char *routine){
@@ -319,33 +335,47 @@ namespace cuda {
      * from the JPDC paper https://www.sciencedirect.com/science/article/pii/S0743731519303302
      */
     DEVICE_CUDA_FORCEINLINE void mpint_add(mp_int_ptr result, mp_int_ptr x, mp_int_ptr y) {
-        int sign_x = x->sign;
-        int sign_y = y->sign;
-        er_float_t eval_x[2];
-        er_float_t eval_y[2];
-        eval_x[0] = x->eval[0];
-        eval_x[1] = x->eval[1];
-        eval_y[0] = y->eval[0];
-        eval_y[1] = y->eval[1];
+        //Local caches
+        int moduli[RNS_MODULI_SIZE]; //RNS moduli
+        int dig[RNS_MODULI_SIZE];    //digits of the result
+        int digx[RNS_MODULI_SIZE];   //digits of x
+        int digy[RNS_MODULI_SIZE];   //digits of y
+        int sx = x->sign;
+        int sy = y->sign;
 
-        int alpha = (1 - 2 * sign_x);
-        int beta = (1 - 2 * sign_y);
+        er_float_t evx[2];
+        er_float_t evy[2];
+        evx[0] = x->eval[0];
+        evx[1] = x->eval[1];
+        evy[0] = y->eval[0];
+        evy[1] = y->eval[1];
 
-        //Addition of the RNS significands
+        int alpha = (1 - 2 * sx);
+        int beta = (1 - 2 * sy);
+
+        //Load data to the cache
+        for(int i = 0; i < RNS_MODULI_SIZE; i ++){
+            moduli[i] = cuda::RNS_MODULI[i];
+            digx[i] = x->digits[i];
+            digy[i] = y->digits[i];
+        }
+
+        //Addition of the RNS significands using cached data
         for (int i = 0; i < RNS_MODULI_SIZE; i++) {
-            int residue = cuda::mod_add(alpha * x->digits[i], beta * y->digits[i], cuda::RNS_MODULI[i]);
-            result->digits[i] = residue < 0 ? residue + cuda::RNS_MODULI[i] : residue;
+            int residue = cuda::mod_add(alpha * digx[i], beta * digy[i], moduli[i]);
+            dig[i] = residue < 0 ? residue + moduli[i] : residue;
         }
 
         //Change the signs of the endpoints of interval evaluation when the number is negative
         //The signs will not change when the number is positive
-        eval_x[0].frac *=  alpha;
-        eval_x[1].frac *=  alpha;
-        eval_y[0].frac *=  beta;
-        eval_y[1].frac *=  beta;
+        evx[0].frac *=  alpha;
+        evx[1].frac *=  alpha;
+        evy[0].frac *=  beta;
+        evy[1].frac *=  beta;
 
-        cuda::er_add_rd(&result->eval[0], &eval_x[sign_x], &eval_y[sign_y]);
-        cuda::er_add_ru(&result->eval[1], &eval_x[1 - sign_x], &eval_y[1 - sign_y]);
+        //Interval addition
+        cuda::er_add_rd(&result->eval[0], &evx[sx], &evy[sy]);
+        cuda::er_add_ru(&result->eval[1], &evx[1 - sx], &evy[1 - sy]);
 
         //Restoring the negative result
         //int plus  = result->eval[0].frac >= 0 && result->eval[1].frac >= 0;
@@ -355,7 +385,7 @@ namespace cuda {
         //when both plus and minus are equal to zero, the actual result is always non-negative.
         if(minus){
             for (int i = 0; i < RNS_MODULI_SIZE; i++) {
-                result->digits[i] = (cuda::RNS_MODULI[i] - result->digits[i]) % cuda::RNS_MODULI[i];
+                dig[i] = (dig[i] != 0) * (moduli[i] - dig[i]);
             }
             er_float_t tmp = result->eval[0];
             result->eval[0].frac = -1 * result->eval[1].frac;
@@ -363,7 +393,10 @@ namespace cuda {
             result->eval[1].frac = -1 * tmp.frac;
             result->eval[1].exp  = tmp.exp;
         }
-        cuda::mpint_check_overflow(&result->eval[0], & result->eval[1], "mpint_add");
+        for (int i = 0; i < RNS_MODULI_SIZE; i++) {
+            result->digits[i] = dig[i];
+        }
+        cuda::mpint_check_overflow(&result->eval[0], &result->eval[1], "mpint_add");
     }
 
     /*!
@@ -373,34 +406,47 @@ namespace cuda {
      * from the JPDC paper https://www.sciencedirect.com/science/article/pii/S0743731519303302
      */
     DEVICE_CUDA_FORCEINLINE void mpint_sub(mp_int_ptr result, mp_int_ptr x, mp_int_ptr y) {
-        int sign_x = x->sign;
-        int sign_y = y->sign ^ 1;
-        er_float_t eval_x[2];
-        er_float_t eval_y[2];
-        eval_x[0] = x->eval[0];
-        eval_x[1] = x->eval[1];
-        eval_y[0] = y->eval[0];
-        eval_y[1] = y->eval[1];
+        //Local caches
+        int moduli[RNS_MODULI_SIZE]; //RNS moduli
+        int dig[RNS_MODULI_SIZE];    //digits of the result
+        int digx[RNS_MODULI_SIZE];   //digits of x
+        int digy[RNS_MODULI_SIZE];   //digits of y
+        int sx = x->sign;
+        int sy = y->sign ^ 1;
 
-        int alpha = (1 - 2 * sign_x);
-        int beta = (1 - 2 * sign_y);
+        er_float_t evx[2];
+        er_float_t evy[2];
+        evx[0] = x->eval[0];
+        evx[1] = x->eval[1];
+        evy[0] = y->eval[0];
+        evy[1] = y->eval[1];
 
-        //Addition of the RNS significands
+        int alpha = (1 - 2 * sx);
+        int beta = (1 - 2 * sy);
+
+        //Load data to the cache
+        for(int i = 0; i < RNS_MODULI_SIZE; i ++){
+            moduli[i] = cuda::RNS_MODULI[i];
+            digx[i] = x->digits[i];
+            digy[i] = y->digits[i];
+        }
+
+        //Addition of the RNS significands using cached data
         for (int i = 0; i < RNS_MODULI_SIZE; i++) {
-            int residue = cuda::mod_add(alpha * x->digits[i], beta * y->digits[i], cuda::RNS_MODULI[i]);
-            result->digits[i] = residue < 0 ? residue + cuda::RNS_MODULI[i] : residue;
+            int residue = cuda::mod_add(alpha * digx[i], beta * digy[i], moduli[i]);
+            dig[i] = residue < 0 ? residue + moduli[i] : residue;
         }
 
         //Change the signs of the endpoints of interval evaluation when the number is negative
         //The signs will not change when the number is positive
-        eval_x[0].frac *=  alpha;
-        eval_x[1].frac *=  alpha;
-        eval_y[0].frac *=  beta;
-        eval_y[1].frac *=  beta;
+        evx[0].frac *=  alpha;
+        evx[1].frac *=  alpha;
+        evy[0].frac *=  beta;
+        evy[1].frac *=  beta;
 
         //Interval addition
-        cuda::er_add_rd(&result->eval[0], &eval_x[sign_x], &eval_y[sign_y]);
-        cuda::er_add_ru(&result->eval[1], &eval_x[1 - sign_x], &eval_y[1 - sign_y]);
+        cuda::er_add_rd(&result->eval[0], &evx[sx], &evy[sy]);
+        cuda::er_add_ru(&result->eval[1], &evx[1 - sx], &evy[1 - sy]);
 
         //Restoring the negative result
         //int plus  = result->eval[0].frac >= 0 && result->eval[1].frac >= 0;
@@ -410,7 +456,7 @@ namespace cuda {
         //when both plus and minus are equal to zero, the actual result is always non-negative.
         if(minus){
             for (int i = 0; i < RNS_MODULI_SIZE; i++) {
-                result->digits[i] = (cuda::RNS_MODULI[i] - result->digits[i]) % cuda::RNS_MODULI[i];
+                dig[i] = (dig[i] != 0) * (moduli[i] - dig[i]);
             }
             er_float_t tmp = result->eval[0];
             result->eval[0].frac = -1 * result->eval[1].frac;
@@ -418,7 +464,10 @@ namespace cuda {
             result->eval[1].frac = -1 * tmp.frac;
             result->eval[1].exp  = tmp.exp;
         }
-        cuda::mpint_check_overflow(&result->eval[0], & result->eval[1], "mpint_sub");
+        for (int i = 0; i < RNS_MODULI_SIZE; i++) {
+            result->digits[i] = dig[i];
+        }
+        cuda::mpint_check_overflow(&result->eval[0], &result->eval[1], "mpint_sub");
     }
 
     /*!
@@ -428,12 +477,29 @@ namespace cuda {
      * from the JPDC paper https://www.sciencedirect.com/science/article/pii/S0743731519303302
      */
     DEVICE_CUDA_FORCEINLINE void mpint_mul(mp_int_ptr result, mp_int_ptr x, mp_int_ptr y) {
+        //Local caches
+        int dig[RNS_MODULI_SIZE];  //digits of the result
+        int digx[RNS_MODULI_SIZE]; //digits of x
+        int digy[RNS_MODULI_SIZE]; //digits of y
+        int sx = x->sign; //sign of x
+        int sy = y->sign; //sign of y
+
         cuda::er_md_rd(&result->eval[0], &x->eval[0], &y->eval[0], &cuda::RNS_EVAL_UNIT.upp);
         cuda::er_md_ru(&result->eval[1], &x->eval[1], &y->eval[1], &cuda::RNS_EVAL_UNIT.low);
+
+        //Load data to the cache
         for(int i = 0; i < RNS_MODULI_SIZE; i ++){
-            result->digits[i] = cuda::mod_mul(x->digits[i], y->digits[i], cuda::RNS_MODULI[i]);
+            digx[i] = x->digits[i];
+            digy[i] = y->digits[i];
         }
-        result->sign = cuda::rns_check_zero(result->digits) ? 0 : x->sign ^ y->sign;
+        //Processing cached data
+        for(int i = 0; i < RNS_MODULI_SIZE; i ++){
+            dig[i] = cuda::mod_mul(digx[i], digy[i], cuda::RNS_MODULI[i]);
+        }
+        result->sign = cuda::rns_check_zero(dig) ? 0 : sx ^ sy;
+        for (int i = 0; i < RNS_MODULI_SIZE; i++) {
+            result->digits[i] = dig[i];
+        }
         cuda::mpint_check_overflow(&result->eval[0], & result->eval[1], "mpint_mul");
     }
 

@@ -18,6 +18,7 @@
  */
 enum RandomBoundType{
     BND_RNS_MODULI_PRODUCT, // up to M-1
+    BND_RNS_MODULI_PRODUCT_HALF, // up to M-1
     BND_RNS_MODULI_PRODUCT_SQRT // up to sqrt(M)
 };
 
@@ -62,13 +63,16 @@ void fill_random_array(int *array, int n, RandomBoundType boundType) {
  * @param array - pointer to the 1D array of mpz_t numbers (preliminary memory allocation is required)
  * @param n - size of array to be filled
  * @param boundType - type of random bound
+ * @param allowNegative - true if negative values are permitted
  */
-void fill_random_array(mpz_t *array, int n, RandomBoundType boundType) {
+void fill_random_array(mpz_t *array, int n, RandomBoundType boundType, bool allowNegative) {
     mpz_t rndBnd;                                   // Bound for mpz_urandomm
     gmp_randstate_t state;                          // Random generator state object
     gmp_randinit_default(state);                    // Initialize state for a Mersenne Twister algorithm
     gmp_randseed_ui(state, (unsigned) time(NULL));   // Call gmp_randseed_ui to set initial seed value into state
     mpz_init(rndBnd);
+    mpz_t temp;
+    mpz_init(temp);
     switch (boundType){
         case BND_RNS_MODULI_PRODUCT:
             mpz_sub_ui(rndBnd, RNS_MODULI_PRODUCT, 1);
@@ -76,15 +80,26 @@ void fill_random_array(mpz_t *array, int n, RandomBoundType boundType) {
         case BND_RNS_MODULI_PRODUCT_SQRT:
             mpz_sqrt(rndBnd, RNS_MODULI_PRODUCT);
             break;
+        case BND_RNS_MODULI_PRODUCT_HALF:
+            mpz_sub_ui(rndBnd, RNS_MODULI_PRODUCT, 1);
+            mpz_div_ui(rndBnd, rndBnd,2);
+            break;
         default:
             mpz_sub_ui(rndBnd, RNS_MODULI_PRODUCT, 1);
             break;
     }
     for (int i = 0; i < n; i++) {
         mpz_urandomm(array[i], state, rndBnd);
+        if(allowNegative){
+            mpz_mod_ui(temp, array[i], 2);
+            if (mpz_cmp_ui(temp, 0) == 0){
+                mpz_mul_si(array[i], array[i], -1);
+            }
+        }
     }
     gmp_randclear(state);
     mpz_clear(rndBnd);
+    mpz_clear(temp);
 }
 
 #endif //GRNS_TEST_TSTHELPER_CUH
