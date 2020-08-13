@@ -53,4 +53,4 @@ target_link_libraries(test_verify_mpint gmp mpfr)
 # Test for measure the performance of the multiple-precision integer routines
 add_executable(test_perf_mpint test_perf_mpint.cu)
 target_compile_options(test_perf_mpint PRIVATE  $<${cuda_lang}:$<BUILD_INTERFACE:${GLOBAL_COMPILE_OPTIONS}>>)
-target_link_libraries(test_perf_mpint gmp mpfr)
+target_link_libraries(test_perf_mpint gmp mpfr OpenMP::OpenMP_CXX)

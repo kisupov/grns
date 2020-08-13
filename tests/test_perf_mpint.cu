@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "omp.h"
 #include "gmp.h"
 #include "../src/mpint.cuh"
 #include "tsthelper.cuh"
@@ -60,12 +61,14 @@ __global__ static void testCudaMpDiv(mp_int_t * dz, mp_int_t * dx, mp_int_t * dy
  */
 
 static void resetResult(mp_int_t * r, int vectorSize){
+    #pragma omp parallel for
     for(auto i = 0; i < vectorSize; i++){
         mpint_set_i(&r[i], 0);
     }
 }
 
 static void resetResult(mpz_t * r, int vectorSize){
+    #pragma omp parallel for
     for(auto i = 0; i < vectorSize; i++){
         mpz_set_ui(r[i], 0);
     }
@@ -143,6 +146,7 @@ static void run_test(int iterations, mpintTestType testType, RandomBoundType ran
     fill_random_array(mpzy, iterations, randomBoundType, false);
 
     //Convert to the RNS
+    #pragma omp parallel for
     for(int i = 0; i < iterations; i++){
         mpint_set_mpz(&hx[i], mpzx[i]);
         mpint_set_mpz(&hy[i], mpzy[i]);
@@ -161,9 +165,10 @@ static void run_test(int iterations, mpintTestType testType, RandomBoundType ran
             // GMP add testing
             //---------------------------------------------------------
             Logger::printDash();
-            PrintTimerName("[CPU] GMP add");
+            PrintTimerName("[CPU] GNU MP mpz_add");
             resetResult(mpzz, iterations);
             StartCpuTimer();
+            #pragma omp parallel for
             for(int i = 0; i < iterations; i++){
                 mpz_add(mpzz[i],mpzx[i],mpzy[i]);
             }
@@ -173,9 +178,10 @@ static void run_test(int iterations, mpintTestType testType, RandomBoundType ran
             // MPINT add testing
             //---------------------------------------------------------
             Logger::printDash();
-            PrintTimerName("[CPU] GRNS add");
+            PrintTimerName("[CPU] GRNS mpint_add");
             resetResult(hz, iterations);
             StartCpuTimer();
+            #pragma omp parallel for
             for(int i = 0; i < iterations; i++){
                 mpint_add(&hz[i],&hx[i],&hy[i]);
             }
@@ -186,7 +192,7 @@ static void run_test(int iterations, mpintTestType testType, RandomBoundType ran
             // MPINT CUDA add testing
             //---------------------------------------------------------
             Logger::printDash();
-            PrintTimerName("[CUDA] add");
+            PrintTimerName("[CUDA] GRNS mpint_add");
             resetResult(hz, iterations);
             resetResultCuda<<<blocks,threads>>>(dz, iterations);
             checkDeviceHasErrors(cudaDeviceSynchronize());
@@ -208,9 +214,10 @@ static void run_test(int iterations, mpintTestType testType, RandomBoundType ran
             // GMP sub testing
             //---------------------------------------------------------
             Logger::printDash();
-            PrintTimerName("[CPU] GMP sub");
+            PrintTimerName("[CPU] GNU MP mpz_sub");
             resetResult(mpzz, iterations);
             StartCpuTimer();
+            #pragma omp parallel for
             for(int i = 0; i < iterations; i++){
                 mpz_sub(mpzz[i],mpzx[i],mpzy[i]);
             }
@@ -220,9 +227,10 @@ static void run_test(int iterations, mpintTestType testType, RandomBoundType ran
             // MPINT sub testing
             //---------------------------------------------------------
             Logger::printDash();
-            PrintTimerName("[CPU] GRNS sub");
+            PrintTimerName("[CPU] GRNS mpint_sub");
             resetResult(hz, iterations);
             StartCpuTimer();
+            #pragma omp parallel for
             for(int i = 0; i < iterations; i++){
                 mpint_sub(&hz[i],&hx[i],&hy[i]);
             }
@@ -233,7 +241,7 @@ static void run_test(int iterations, mpintTestType testType, RandomBoundType ran
             // MPINT CUDA sub testing
             //---------------------------------------------------------
             Logger::printDash();
-            PrintTimerName("[CUDA] sub");
+            PrintTimerName("[CUDA] GRNS mpint_sub");
             resetResult(hz, iterations);
             resetResultCuda<<<blocks,threads>>>(dz, iterations);
             checkDeviceHasErrors(cudaDeviceSynchronize());
@@ -255,9 +263,10 @@ static void run_test(int iterations, mpintTestType testType, RandomBoundType ran
             // GMP mul testing
             //---------------------------------------------------------
             Logger::printDash();
-            PrintTimerName("[CPU] GMP mul");
+            PrintTimerName("[CPU] GNU MP mpz_mul");
             resetResult(mpzz, iterations);
             StartCpuTimer();
+            #pragma omp parallel for
             for(int i = 0; i < iterations; i++){
                 mpz_mul(mpzz[i],mpzx[i],mpzy[i]);
             }
@@ -267,9 +276,10 @@ static void run_test(int iterations, mpintTestType testType, RandomBoundType ran
             // MPINT mul testing
             //---------------------------------------------------------
             Logger::printDash();
-            PrintTimerName("[CPU] GRNS mul");
+            PrintTimerName("[CPU] GRNS mpint_mul");
             resetResult(hz, iterations);
             StartCpuTimer();
+            #pragma omp parallel for
             for(int i = 0; i < iterations; i++){
                 mpint_mul(&hz[i],&hx[i],&hy[i]);
             }
@@ -280,7 +290,7 @@ static void run_test(int iterations, mpintTestType testType, RandomBoundType ran
             // MPINT CUDA mul testing
             //---------------------------------------------------------
             Logger::printDash();
-            PrintTimerName("[CUDA] mul");
+            PrintTimerName("[CUDA] GRNS mpint_mul");
             resetResult(hz, iterations);
             resetResultCuda<<<blocks,threads>>>(dz, iterations);
             checkDeviceHasErrors(cudaDeviceSynchronize());
@@ -301,9 +311,10 @@ static void run_test(int iterations, mpintTestType testType, RandomBoundType ran
             // GMP div testing
             //---------------------------------------------------------
             Logger::printDash();
-            PrintTimerName("[CPU] GMP div");
+            PrintTimerName("[CPU] GNU MP mpz_fdiv_q");
             resetResult(mpzz, iterations);
             StartCpuTimer();
+            #pragma omp parallel for
             for(int i = 0; i < iterations; i++){
                 mpz_fdiv_q(mpzz[i],mpzx[i],mpzy[i]);
             }
@@ -313,9 +324,10 @@ static void run_test(int iterations, mpintTestType testType, RandomBoundType ran
             // MPINT div testing
             //---------------------------------------------------------
             Logger::printDash();
-            PrintTimerName("[CPU] GRNS div");
+            PrintTimerName("[CPU] GRNS mpint_div");
             resetResult(hz, iterations);
             StartCpuTimer();
+            #pragma omp parallel for
             for(int i = 0; i < iterations; i++){
                 mpint_div(&hz[i],&hx[i],&hy[i]);
             }
@@ -326,7 +338,7 @@ static void run_test(int iterations, mpintTestType testType, RandomBoundType ran
             // MPINT CUDA div testing
             //---------------------------------------------------------
             Logger::printDash();
-            PrintTimerName("[CUDA] div");
+            PrintTimerName("[CUDA] GRNS mpint_div");
             resetResult(hz, iterations);
             resetResultCuda<<<blocks,threads>>>(dz, iterations);
             checkDeviceHasErrors(cudaDeviceSynchronize());
@@ -347,6 +359,7 @@ static void run_test(int iterations, mpintTestType testType, RandomBoundType ran
     }
 
     // Cleanup
+    #pragma omp parallel for
     for(int i = 0; i < iterations; i++){
         mpz_clear(mpzx[i]);
         mpz_clear(mpzy[i]);
@@ -369,8 +382,13 @@ int main() {
     Logger::printDash();
     rns_const_print(true);
     Logger::endSection(true);
-    Logger::printSpace();
     run_test(ITERATIONS, add_test, BND_RNS_MODULI_PRODUCT_HALF);
+    Logger::printSpace();
+    run_test(ITERATIONS, sub_test, BND_RNS_MODULI_PRODUCT_HALF);
+    Logger::printSpace();
+    run_test(ITERATIONS, mul_test, BND_RNS_MODULI_PRODUCT_SQRT);
+    Logger::printSpace();
+    run_test(ITERATIONS, div_test, BND_RNS_MODULI_PRODUCT);
     Logger::endTestDescription();
     return 0;
 }

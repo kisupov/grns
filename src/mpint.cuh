@@ -286,7 +286,7 @@ GCC_FORCEINLINE void mpint_mul(mp_int_ptr result, mp_int_ptr x, mp_int_ptr y) {
  */
 GCC_FORCEINLINE void mpint_div(mp_int_ptr result, mp_int_ptr x, mp_int_ptr y) {
     int remainder[RNS_MODULI_SIZE];
-    rns_div(result->digits, remainder, x->digits, y->digits);
+    rns_div_fast(result->digits, remainder, x->digits, y->digits);
     if(x->sign == 1 && !rns_check_zero(remainder)) {
         for (int i = 0; i < RNS_MODULI_SIZE; i++) {
             result->digits[i] = (result->digits[i] + 1) % RNS_MODULI[i];
@@ -488,7 +488,7 @@ namespace cuda {
         cuda::er_md_ru(&result->eval[1], &x->eval[1], &y->eval[1], &cuda::RNS_EVAL_UNIT.low);
 
         //Load data to the cache
-        for(int i = 0; i < RNS_MODULI_SIZE; i ++){
+        for(int i = 0; i < RNS_MODULI_SIZE; i++){
             digx[i] = x->digits[i];
             digy[i] = y->digits[i];
         }
@@ -500,7 +500,7 @@ namespace cuda {
         for (int i = 0; i < RNS_MODULI_SIZE; i++) {
             result->digits[i] = dig[i];
         }
-        cuda::mpint_check_overflow(&result->eval[0], & result->eval[1], "mpint_mul");
+        cuda::mpint_check_overflow(&result->eval[0], &result->eval[1], "mpint_mul");
     }
 
     /*!
@@ -511,13 +511,24 @@ namespace cuda {
      */
     DEVICE_CUDA_FORCEINLINE void mpint_div(mp_int_ptr result, mp_int_ptr x, mp_int_ptr y) {
         int remainder[RNS_MODULI_SIZE];
-        cuda::rns_div(result->digits, remainder, x->digits, y->digits);
+        int quotient[RNS_MODULI_SIZE];
+        int digx[RNS_MODULI_SIZE];
+        int digy[RNS_MODULI_SIZE];
+
+        for(int i = 0; i < RNS_MODULI_SIZE; i++){
+            digx[i] = x->digits[i];
+            digy[i] = y->digits[i];
+        }
+        cuda::rns_div(quotient, remainder, digx, digy);
         if(x->sign == 1 && !cuda::rns_check_zero(remainder)) {
             for (int i = 0; i < RNS_MODULI_SIZE; i++) {
-                result->digits[i] = (result->digits[i] + 1) % cuda::RNS_MODULI[i];
+                quotient[i] = (quotient[i] + 1) % cuda::RNS_MODULI[i];
             }
         }
-        cuda::rns_eval_compute(&result->eval[0], &result->eval[1],result->digits);
+        cuda::rns_eval_compute(&result->eval[0], &result->eval[1], quotient);
+        for (int i = 0; i < RNS_MODULI_SIZE; i++) {
+            result->digits[i] = quotient[i];
+        }
         result->sign = cuda::rns_check_zero(result->digits) ? 0 : x->sign ^ y->sign;
     }
 

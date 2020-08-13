@@ -63,7 +63,7 @@ GCC_FORCEINLINE void rns_div(int *q, int *r, int *x, int *d) {
  * This is an improved version of the rns_div algorithm.
  * It eliminates multiple recalculations of the interval evaluation
  */
- void rns_div_fast(int *q, int *r, int *x, int *d) {
+GCC_FORCEINLINE void rns_div_fast(int *q, int *r, int *x, int *d) {
     int pq[RNS_MODULI_SIZE]; //Partial quotient
     er_float_t flq; //The result of floating-point division
     interval_t deval; //Interval evaluation of d

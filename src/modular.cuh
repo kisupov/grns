@@ -9,12 +9,13 @@
 #include "params.h"
 #include "common.cuh"
 
-/*
- * The set of RNS moduli for GPU computing.
- * They are copied to the GPU memory in rns.cuh
+/**
+ * Constants that are computed  or copied to the device memory in rns.cuh
  */
+double RNS_MODULI_RECIPROCAL[RNS_MODULI_SIZE]; // Array of 1 / RNS_MODULI[i]
+
 namespace cuda {
-    __device__  int RNS_MODULI[RNS_MODULI_SIZE];
+    __device__  int RNS_MODULI[RNS_MODULI_SIZE]; // The set of RNS moduli for GPU computing
 }
 
 
@@ -179,7 +180,7 @@ namespace cuda {
  */
 GCC_FORCEINLINE void rns_mul(int * result, int * x, int * y){
     for(int i = 0; i < RNS_MODULI_SIZE; i++){
-        result[i] = mod_mul(x[i], y[i], RNS_MODULI[i]);
+        result[i] = mod_mulf(x[i], y[i], RNS_MODULI[i], RNS_MODULI_RECIPROCAL[i]);
     }
 }
 
@@ -188,7 +189,7 @@ GCC_FORCEINLINE void rns_mul(int * result, int * x, int * y){
  */
 GCC_FORCEINLINE void rns_add(int * result, int * x, int * y){
     for(int i = 0; i < RNS_MODULI_SIZE; i++){
-        result[i] = mod_add(x[i], y[i], RNS_MODULI[i]);
+        result[i] = mod_addf(x[i], y[i], RNS_MODULI[i], RNS_MODULI_RECIPROCAL[i]);
     }
 }
 
