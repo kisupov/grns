@@ -104,7 +104,7 @@ static void checkResult(mpz_t * ref, mp_int_t * res, int vectorSize){
 /*
  * Main test
  */
-static void run_test(int iterations, mpintTestType testType, RandomBoundType randomBoundType) {
+static void run_test(int iterations, mpintTestType testType, RandomBoundType randomBoundType, bool allowNegative) {
     InitCpuTimer();
     InitCudaTimer();
 
@@ -141,9 +141,9 @@ static void run_test(int iterations, mpintTestType testType, RandomBoundType ran
     cudaCheckErrors();
 
     //Generate inputs
-    fill_random_array(mpzx, iterations, randomBoundType, false);
+    fill_random_array(mpzx, iterations, randomBoundType, allowNegative);
     waitFor(5);
-    fill_random_array(mpzy, iterations, randomBoundType, false);
+    fill_random_array(mpzy, iterations, randomBoundType, allowNegative);
 
     //Convert to the RNS
     #pragma omp parallel for
@@ -379,16 +379,17 @@ int main() {
     mpint_const_init();
     Logger::beginTestDescription(Logger::TEST_PERF_MPINT);
     Logger::printParam("ITERATIONS", ITERATIONS);
+    Logger::printParam("PRECISION", RNS_MODULI_PRODUCT_LOG2);
     Logger::printDash();
     rns_const_print(true);
     Logger::endSection(true);
-    run_test(ITERATIONS, add_test, BND_RNS_MODULI_PRODUCT_HALF);
+    run_test(ITERATIONS, add_test, BND_RNS_MODULI_PRODUCT_HALF, true);
     Logger::printSpace();
-    run_test(ITERATIONS, sub_test, BND_RNS_MODULI_PRODUCT_HALF);
+    run_test(ITERATIONS, sub_test, BND_RNS_MODULI_PRODUCT_HALF, true);
     Logger::printSpace();
-    run_test(ITERATIONS, mul_test, BND_RNS_MODULI_PRODUCT_SQRT);
+    run_test(ITERATIONS, mul_test, BND_RNS_MODULI_PRODUCT_SQRT, true);
     Logger::printSpace();
-    run_test(ITERATIONS, div_test, BND_RNS_MODULI_PRODUCT);
+    run_test(ITERATIONS, div_test, BND_RNS_MODULI_PRODUCT, false);
     Logger::endTestDescription();
     return 0;
 }
