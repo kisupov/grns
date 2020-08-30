@@ -116,7 +116,7 @@ GCC_FORCEINLINE void mpint_get_mpz(mpz_t result, mp_int_ptr x) {
 /*!
  * Print the parts (fields) of a multiple-precision number
  */
-void mp_print(mp_int_ptr x) {
+void mpint_print(mp_int_ptr x) {
     printf("\nMultiple-precision value:\n");
     printf("- Sign: %d\n", x->sign);
     printf("- Significand: <");

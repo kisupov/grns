@@ -19,7 +19,8 @@ namespace Logger {
         TEST_PERF_RNSDIV,
         TEST_PERF_CMP,
         TEST_VERIFY_MPINT,
-        TEST_PERF_MPINT
+        TEST_PERF_MPINT,
+        TEST_PERF_MPINT_ADD
     };
 
     const char *testHeaderAsString(enum TestHeader header) {
@@ -42,6 +43,8 @@ namespace Logger {
                 return "Test for checking the correctness of the multiple-precision integer routines";
             case TEST_PERF_MPINT:
                 return "Test for measure the performance of the multiple-precision integer routines";
+            case TEST_PERF_MPINT_ADD:
+                return "Test for measure the performance of the various multiple-precision integer addition algorithms (naive vs optimized)";
         }
         return "";
     }
