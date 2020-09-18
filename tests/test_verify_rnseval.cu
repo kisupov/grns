@@ -13,14 +13,14 @@
  *  to the exact relative value of an RNS number
  */
 void printError(interval_ptr eval, er_float_ptr exact) {
-    std::cout << "\n\t eval_low  = ";
+    std::cout << "\neval_low  = ";
     er_print(&eval->low);
-    std::cout << "\t eval_upp  = ";
+    std::cout << "\neval_upp  = ";
     er_print(&eval->upp);
 
     er_adjust(exact);
     if((er_cmp(&eval->low, exact) == 1) || (er_cmp(exact, &eval->upp) == 1)){
-        std::cout << "\t error    = 100%. The RNS Interval Evaluation is wrong!";
+        std::cout << "\nerror = 100%. The RNS Interval Evaluation is wrong!\n";
     }
     else{
         er_float_ptr error = new er_float_t[1];
@@ -28,7 +28,7 @@ void printError(interval_ptr eval, er_float_ptr exact) {
         er_div(error, error, exact);
         double derror;
         er_get_d(&derror, error);
-        std::cout << "\t rel.error    = " << (derror);
+        std::cout << "\nrel.error = " << (derror) << std::endl;
         delete error;
     }
 }
@@ -98,10 +98,11 @@ int main() {
                 Logger::printDash();
 
                 rns_to_binary(binary, number);
-                printf("\t number = %s\n", mpz_get_str(NULL, 10, binary));
+                printf("\nnumber = %s", mpz_get_str(NULL, 10, binary));
                 rns_fractional(exact, number);
-                std::cout << "\t relative = ";
+                std::cout << "\nrelative = ";
                 er_print(exact);
+                Logger::printSpace();
                 //-------------------------------------------
                 printf("\n[CPU] rns_eval_compute: ");
                 resetResult(eval);
@@ -145,7 +146,6 @@ int main() {
                     }
                 }
                 cudaMemcpy(d_number, number, RNS_MODULI_SIZE * sizeof(int), cudaMemcpyHostToDevice);
-                printf("\n");
             }
             Logger::printDash();
             std::cout << "\n\nEnter 'y' for continue (or any key for exit): ";

@@ -1,5 +1,5 @@
 # Library for computations in Residue Number System (RNS) using CUDA-enabled GPUs (GRNS)
-###### Version 1.1.2, released 2020-08-13
+###### Version 1.1.3, released 2020-09-18
 
 The following time-consuming non-modular (aka inter-modulo) operations in [RNS](https://en.wikipedia.org/wiki/Residue_number_system) are implemented in addition to simple addition, subtraction, and multiplication:
 

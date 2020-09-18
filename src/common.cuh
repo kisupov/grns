@@ -36,4 +36,16 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort =
  }                                                                 \
 }
 
+/*
+ * Minimum and maximum
+ */
+#ifndef MIN
+#define MIN(a,b) (a < b ? a : b)
+#endif
+
+#ifndef MAX
+#define MAX(a,b) (a > b ? a : b)
+#endif
+
+
 #endif //GRNS_COMMON_CUH

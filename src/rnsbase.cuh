@@ -65,8 +65,7 @@ int RNS_POW2_INVERSE[RNS_P2_SCALING_THRESHOLD][RNS_MODULI_SIZE];
  * Constants for computing the interval evaluation of an RNS number
  */
 double RNS_EVAL_ACCURACY; // Accuracy constant for computing the RNS interval evaluation. RNS_EVAL_ACCURACY = 4*u*n*log_2(n)*(1+RNS_EVAL_RELATIVE_ERROR/2)/RNS_EVAL_RELATIVE_ERROR, where u is the unit roundoff,
-int RNS_EVAL_REF_FACTOR; // Refinement factor for computing the RNS interval evaluation
-int RNS_EVAL_POW2_REF_FACTOR[RNS_MODULI_SIZE]; //The RNS representation of 2^RNS_EVAL_REFINEMENT_FACTOR, (2^RNS_EVAL_REFINEMENT_FACTOR mod m1,..., 2^RNS_EVAL_REFINEMENT_FACTOR mod mn), which is used in the refinement loop
+int RNS_EVAL_REF_FACTOR; // Fixed refinement factor for computing the RNS interval evaluation
 interval_t RNS_EVAL_UNIT; // Interval approximation of 1 / M
 interval_t RNS_EVAL_INV_UNIT; // Interval approximation of (M - 1) / M
 er_float_t RNS_EVAL_ZERO_BOUND = (er_float_t) {0.0, 0}; // To set the zero interval evaluation
@@ -88,7 +87,6 @@ namespace cuda {
     __device__ int RNS_POW2_INVERSE[RNS_P2_SCALING_THRESHOLD][RNS_MODULI_SIZE];
     __device__ __constant__ double RNS_EVAL_ACCURACY;
     __device__ __constant__ int RNS_EVAL_REF_FACTOR;
-    __device__ int RNS_EVAL_POW2_REF_FACTOR[RNS_MODULI_SIZE];
     __device__ __constant__  interval_t RNS_EVAL_UNIT;
     __device__ __constant__  interval_t RNS_EVAL_INV_UNIT;
     __device__ __constant__ er_float_t RNS_EVAL_ZERO_BOUND;
@@ -385,18 +383,11 @@ void rns_const_init(){
     RNS_EVAL_ACCURACY  =  4 * pow(2.0, 1 - DBL_PRECISION) * RNS_MODULI_SIZE * log2((double)RNS_MODULI_SIZE) * (1 + RNS_EVAL_RELATIVE_ERROR / 2)  / RNS_EVAL_RELATIVE_ERROR;
     // Computing refinement coefficient for RNS interval evaluation
     RNS_EVAL_REF_FACTOR  =  floor(log2(1/(2*RNS_EVAL_ACCURACY)));
-    // Computing two in degree of RNS_EVAL_REF_FACTOR in the RNS representation
-    for (int i = 0; i < RNS_MODULI_SIZE; i++) {
-        RNS_EVAL_POW2_REF_FACTOR[i] = 1;
-        for (int k = 0; k < RNS_EVAL_REF_FACTOR; k++){
-            RNS_EVAL_POW2_REF_FACTOR[i] = mod_mul(RNS_EVAL_POW2_REF_FACTOR[i], 2, RNS_MODULI[i]);
-        }
-    }
+    //Computing upper bound for 1 / M
     mpfr_t mpfr_tmp, mpfr_one;
     mpfr_init2(mpfr_tmp, 10000);
     mpfr_init2(mpfr_one, 10000);
     mpfr_set_ui(mpfr_one, 1, MPFR_RNDN);
-    //Computing upper bound for 1 / M
     mpfr_set_ui(mpfr_tmp, 1, MPFR_RNDN);
     mpfr_div(mpfr_tmp, mpfr_tmp, RNS_MODULI_PRODUCT_MPFR, MPFR_RNDU);
     RNS_EVAL_UNIT.upp.frac = mpfr_get_d_2exp(&RNS_EVAL_UNIT.upp.exp, mpfr_tmp, MPFR_RNDU);
@@ -439,7 +430,6 @@ void rns_const_init(){
     cudaMemcpyToSymbol(cuda::RNS_POW2_INVERSE, &RNS_POW2_INVERSE, RNS_P2_SCALING_THRESHOLD * RNS_MODULI_SIZE * sizeof(int));
     cudaMemcpyToSymbol(cuda::RNS_EVAL_ACCURACY, &::RNS_EVAL_ACCURACY, sizeof(double));
     cudaMemcpyToSymbol(cuda::RNS_EVAL_REF_FACTOR, &::RNS_EVAL_REF_FACTOR, sizeof(int));
-    cudaMemcpyToSymbol(cuda::RNS_EVAL_POW2_REF_FACTOR, &::RNS_EVAL_POW2_REF_FACTOR, sizeof(int) * RNS_MODULI_SIZE);
     cudaMemcpyToSymbol(cuda::RNS_EVAL_UNIT, &RNS_EVAL_UNIT, sizeof(interval_t));
     cudaMemcpyToSymbol(cuda::RNS_EVAL_INV_UNIT, &RNS_EVAL_INV_UNIT, sizeof(interval_t));
     cudaMemcpyToSymbol(cuda::RNS_EVAL_ZERO_BOUND, &RNS_EVAL_ZERO_BOUND, sizeof(er_float_t));
