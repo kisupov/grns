@@ -424,6 +424,7 @@ void rns_const_init(){
     //Copying constants to the GPU memory
     cudaMemcpyToSymbol(cuda::RNS_MODULI, &RNS_MODULI, RNS_MODULI_SIZE * sizeof(int)); // Declared in modular.cuh
     cudaMemcpyToSymbol(cuda::RNS_PART_MODULI_PRODUCT_INVERSE, &RNS_PART_MODULI_PRODUCT_INVERSE, RNS_MODULI_SIZE * sizeof(int));
+    cudaMemcpyToSymbol(cuda::RNS_MODULI_RECIPROCAL, &RNS_MODULI_RECIPROCAL, RNS_MODULI_SIZE * sizeof(double));
     cudaMemcpyToSymbol(cuda::RNS_POW2, &RNS_POW2, (RNS_MODULI_PRODUCT_LOG2+1) * RNS_MODULI_SIZE * sizeof(int));
     cudaMemcpyToSymbol(cuda::RNS_MODULI_PRODUCT_POW2_RESIDUES, &RNS_MODULI_PRODUCT_POW2_RESIDUES, RNS_P2_SCALING_THRESHOLD * sizeof(int));
     cudaMemcpyToSymbol(cuda::RNS_PART_MODULI_PRODUCT_POW2_RESIDUES, &RNS_PART_MODULI_PRODUCT_POW2_RESIDUES, RNS_P2_SCALING_THRESHOLD * RNS_MODULI_SIZE * sizeof(int));

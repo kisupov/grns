@@ -185,8 +185,8 @@ namespace cuda{
         double suml = 0.0;
         double sumu = 0.0;
         //Computing the products x_i * w_i (mod m_i) and the corresponding fractions (lower and upper)
+        cuda::rns_mul(s, x, cuda::RNS_PART_MODULI_PRODUCT_INVERSE);
         for (int i = 0; i < RNS_MODULI_SIZE; i++) {
-            s[i] = cuda::mod_mul(x[i], cuda::RNS_PART_MODULI_PRODUCT_INVERSE[i], cuda::RNS_MODULI[i]);
             fracl[i] = __ddiv_rd(s[i], (double) cuda::RNS_MODULI[i]);
             fracu[i] = __ddiv_ru(s[i], (double) cuda::RNS_MODULI[i]);
         }
@@ -233,8 +233,8 @@ namespace cuda{
         while (sumu < accuracy_constant) {
             //The improvement is that the refinement factor depends on the value of X
             int k = MAX(-(ceil(log2(sumu))+1), cuda::RNS_EVAL_REF_FACTOR);
+            cuda::rns_mul(s, s, cuda::RNS_POW2[k]);
             for(int i = 0; i < RNS_MODULI_SIZE; i++) {
-                s[i] = cuda::mod_mul(s[i], cuda::RNS_POW2[k][i], cuda::RNS_MODULI[i]);
                 fracu[i] = __ddiv_ru(s[i], (double) cuda::RNS_MODULI[i]);
             }
             sumu = cuda::psum_ru<RNS_MODULI_SIZE>(fracu);
@@ -270,8 +270,8 @@ namespace cuda{
         double suml = 0.0;
         double sumu = 0.0;
         //Computing the products x_i * w_i (mod m_i) and the corresponding fractions (lower and upper)
+        cuda::rns_mul(s, x, cuda::RNS_PART_MODULI_PRODUCT_INVERSE);
         for (int i = 0; i < RNS_MODULI_SIZE; i++) {
-            s[i] = cuda::mod_mul(x[i], cuda::RNS_PART_MODULI_PRODUCT_INVERSE[i], cuda::RNS_MODULI[i]);
             fracl[i] = __ddiv_rd(s[i], (double) cuda::RNS_MODULI[i]);
             fracu[i] = __ddiv_ru(s[i], (double) cuda::RNS_MODULI[i]);
         }
@@ -298,8 +298,8 @@ namespace cuda{
         while (sumu < accuracy_constant) {
             //The improvement is that the refinement factor depends on the value of X
             int k = MAX(-(ceil(log2(sumu))+1), cuda::RNS_EVAL_REF_FACTOR);
+            cuda::rns_mul(s, s, cuda::RNS_POW2[k]);
             for(int i = 0; i < RNS_MODULI_SIZE; i++) {
-                s[i] = cuda::mod_mul(s[i], cuda::RNS_POW2[k][i], cuda::RNS_MODULI[i]);
                 fracu[i] = __ddiv_ru(s[i], (double) cuda::RNS_MODULI[i]);
             }
             sumu = cuda::psum_ru<RNS_MODULI_SIZE>(fracu);
@@ -337,7 +337,7 @@ namespace cuda{
         __shared__ bool ambiguity;
 
         //Computing the products x_i * w_i (mod m_i) and the corresponding fractions (lower and upper)
-        int s = cuda::mod_mul(x[threadIdx.x], cuda::RNS_PART_MODULI_PRODUCT_INVERSE[threadIdx.x], modulus);
+        int s = cuda::mod_mul(x[threadIdx.x], cuda::RNS_PART_MODULI_PRODUCT_INVERSE[threadIdx.x], modulus, cuda::RNS_MODULI_RECIPROCAL[threadIdx.x]);
         fracl[threadIdx.x] = __ddiv_rd(s, (double) modulus);
         fracu[threadIdx.x] = __ddiv_ru(s, (double) modulus);
         __syncthreads();
@@ -413,7 +413,7 @@ namespace cuda{
             while (fracu[0] < accuracy_constant) {
                 //The improvement is that the refinement factor depends on the value of X
                 int k = MAX(-(ceil(log2(fracu[0]))+1), cuda::RNS_EVAL_REF_FACTOR);
-                s = cuda::mod_mul(s, cuda::RNS_POW2[k][threadIdx.x], modulus);
+                s = cuda::mod_mul(s, cuda::RNS_POW2[k][threadIdx.x], modulus, cuda::RNS_MODULI_RECIPROCAL[threadIdx.x]);
                 fracu[threadIdx.x] = __ddiv_ru(s, (double) modulus);
                 __syncthreads();
                 //Parallel reduction
