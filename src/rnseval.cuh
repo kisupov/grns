@@ -76,7 +76,7 @@ GCC_FORCEINLINE void rns_eval_compute(er_float_ptr low, er_float_ptr upp, int * 
         return;
     }
     //Need more accuracy. Performing a refinement loop with stepwise calculation of the shifted upper bound
-    int j = 0;
+    int K = 0;
     while (sumu < RNS_EVAL_ACCURACY) {
         //The improvement is that the refinement factor depends on the value of X
         int k = MAX(-(ceil(log2(sumu))+1), RNS_EVAL_REF_FACTOR);
@@ -86,7 +86,7 @@ GCC_FORCEINLINE void rns_eval_compute(er_float_ptr low, er_float_ptr upp, int * 
         }
         sumu = psum_ru<RNS_MODULI_SIZE>(fracu);
         sumu -= (unsigned int) sumu;
-        j += k;
+        K += k;
     }
     //Computing the shifted lower bound
     for (int i = 0; i < RNS_MODULI_SIZE; i++) {
@@ -97,8 +97,8 @@ GCC_FORCEINLINE void rns_eval_compute(er_float_ptr low, er_float_ptr upp, int * 
     //Setting the result lower and upper bounds of eval with appropriate correction (scaling by a power of two)
     er_set_d(low, suml);
     er_set_d(upp, sumu);
-    low->exp -= j;
-    upp->exp -= j;
+    low->exp -= K;
+    upp->exp -= K;
 }
 
 
@@ -229,7 +229,7 @@ namespace cuda{
             return;
         }
         //Need more accuracy. Performing a refinement loop with stepwise calculation of the shifted upper bound
-        int j = 0;
+        int K = 0;
         while (sumu < accuracy_constant) {
             //The improvement is that the refinement factor depends on the value of X
             int k = MAX(-(ceil(log2(sumu))+1), cuda::RNS_EVAL_REF_FACTOR);
@@ -239,7 +239,7 @@ namespace cuda{
             }
             sumu = cuda::psum_ru<RNS_MODULI_SIZE>(fracu);
             sumu = __dsub_ru(sumu, (unsigned int) sumu);
-            j += k;
+            K += k;
         }
         // Computing the shifted lower bound
         for (int i = 0; i < RNS_MODULI_SIZE; i++) {
@@ -250,8 +250,8 @@ namespace cuda{
         //Setting the result lower and upper bounds of eval with appropriate correction (scaling by a power of two)
         cuda::er_set_d(low, suml);
         cuda::er_set_d(upp, sumu);
-        low->exp -= j;
-        upp->exp -= j;
+        low->exp -= K;
+        upp->exp -= K;
     }
 
 
@@ -294,7 +294,7 @@ namespace cuda{
             return;
         }
         //Need more accuracy. Performing a refinement loop with stepwise calculation of the shifted upper bound
-        int j = 0;
+        int K = 0;
         while (sumu < accuracy_constant) {
             //The improvement is that the refinement factor depends on the value of X
             int k = MAX(-(ceil(log2(sumu))+1), cuda::RNS_EVAL_REF_FACTOR);
@@ -304,7 +304,7 @@ namespace cuda{
             }
             sumu = cuda::psum_ru<RNS_MODULI_SIZE>(fracu);
             sumu = __dsub_ru(sumu, (unsigned int) sumu);
-            j += k;
+            K += k;
         }
         // Computing the shifted lower bound
         for (int i = 0; i < RNS_MODULI_SIZE; i++) {
@@ -315,8 +315,8 @@ namespace cuda{
         //Setting the result lower and upper bounds of eval with appropriate correction (scaling by a power of two)
         cuda::er_set_d(low, suml);
         cuda::er_set_d(upp, sumu);
-        low->exp -= j;
-        upp->exp -= j;
+        low->exp -= K;
+        upp->exp -= K;
     }
 
     /*!
@@ -409,7 +409,7 @@ namespace cuda{
          * Incremental refinement
          */
         if(control){
-            int j = 0;
+            int K = 0;
             while (fracu[0] < accuracy_constant) {
                 //The improvement is that the refinement factor depends on the value of X
                 int k = MAX(-(ceil(log2(fracu[0]))+1), cuda::RNS_EVAL_REF_FACTOR);
@@ -426,7 +426,7 @@ namespace cuda{
                 if(threadIdx.x == 0){
                     fracu[0] = __dsub_ru(fracu[0], (unsigned int)fracu[0]);    // upper bound
                 }
-                j += k;
+                K += k;
                 __syncthreads();
             }
 
@@ -446,8 +446,8 @@ namespace cuda{
                 //Setting the result lower and upper bounds of eval with appropriate correction (scaling by a power of two)
                 cuda::er_set_d(low, fracl[0]);
                 cuda::er_set_d(upp, fracu[0]);
-                low->exp -= j;
-                upp->exp -= j;
+                low->exp -= K;
+                upp->exp -= K;
             }
         }
     }
