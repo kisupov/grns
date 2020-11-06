@@ -15,8 +15,8 @@
 double RNS_MODULI_RECIPROCAL[RNS_MODULI_SIZE]; // Array of 1 / RNS_MODULI[i]
 
 namespace cuda {
-    __device__ __constant__ int RNS_MODULI[RNS_MODULI_SIZE]; // The set of RNS moduli for GPU computing
-    __device__ __constant__ double RNS_MODULI_RECIPROCAL[RNS_MODULI_SIZE]; //Array of 1 / RNS_MODULI[i] for GPU computing
+    __device__ int RNS_MODULI[RNS_MODULI_SIZE]; // The set of RNS moduli for GPU computing
+    __device__ double RNS_MODULI_RECIPROCAL[RNS_MODULI_SIZE]; //Array of 1 / RNS_MODULI[i] for GPU computing
 }
 
 

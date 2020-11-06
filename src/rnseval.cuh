@@ -32,6 +32,8 @@ GCC_FORCEINLINE void rns_eval_compute(er_float_ptr low, er_float_ptr upp, int * 
     double fracu[RNS_MODULI_SIZE];   //Array of x_i * w_i (mod m_i) / m_i, rounding up
     double suml = 0.0; //Rounded downward sum
     double sumu = 0.0; //Rounded upward sum
+    int mrd[RNS_MODULI_SIZE];
+    int mr = -1;
     //Checking for zero
     if(rns_check_zero(x)){
         er_set(low, &RNS_EVAL_ZERO_BOUND);
@@ -51,28 +53,24 @@ GCC_FORCEINLINE void rns_eval_compute(er_float_ptr low, er_float_ptr upp, int * 
     unsigned int whu = (unsigned int) sumu; // Whole part
     suml = suml - whl;    // Fractional part
     sumu = sumu - whu;    // Fractional part
-    //Checking the correctness and adjusting
-    bool huge = false;
-    bool tiny = false;
-    if (whl != whu) { //Interval evaluation is wrong
-        int mr[RNS_MODULI_SIZE];
-        perform_mrc(mr, x); //Computing the mixed-radix representation of x
-        if (mr[RNS_MODULI_SIZE - 1] == 0) {
-            tiny = true; //Number is too small, the lower bound is incorrect
-            er_set(low, &RNS_EVAL_UNIT.low);
-        } else {
-            huge = true; //Number is too large, the upper bound is incorrect
-            er_set(upp, &RNS_EVAL_INV_UNIT.upp);
-        }
+    //Assign the computed values to the result
+    er_set_d(low, suml);
+    er_set_d(upp, sumu);
+    //Check for ambiguity
+    if(whl != whu) {
+        perform_mrc(mrd, x); //Computing the mixed-radix representation of x
+        mr = mrd[RNS_MODULI_SIZE - 1];
     }
-    /*
-     * Accuracy checking
-     * If the lower bound is incorrectly calculated (the number is too small), then refinement may be required;
-     * If the upper bound is incorrectly calculated (the number is too large), no refinement is required.
-    */
-    if (huge || sumu >= RNS_EVAL_ACCURACY) { //Refinement is not required
-        if (!tiny)  er_set_d(low, suml);
-        if (!huge)  er_set_d(upp, sumu);
+    //Adjust if ambiguity was found
+    if(mr > 0){
+        er_set(upp, &RNS_EVAL_INV_UNIT.upp);
+        return;
+    }
+    if(mr == 0){
+        er_set(low, &RNS_EVAL_UNIT.low);
+    }
+    // Refinement is not required
+    if(sumu >= RNS_EVAL_ACCURACY){
         return;
     }
     //Need more accuracy. Performing a refinement loop with stepwise calculation of the shifted upper bound
@@ -139,7 +137,7 @@ GCC_FORCEINLINE void rns_eval_compute_fast(er_float_ptr low, er_float_ptr upp, i
         return;
     }
     //Need more accuracy. Performing a refinement loop with stepwise calculation of the shifted upper bound
-    int j = 0;
+    int K = 0;
     while (sumu < RNS_EVAL_ACCURACY) {
         //The improvement is that the refinement factor depends on the value of X
         int k = MAX(-(ceil(log2(sumu))+1), RNS_EVAL_REF_FACTOR);
@@ -149,7 +147,7 @@ GCC_FORCEINLINE void rns_eval_compute_fast(er_float_ptr low, er_float_ptr upp, i
         }
         sumu = psum_ru<RNS_MODULI_SIZE>(fracu);
         sumu -= (unsigned int) sumu;
-        j += k;
+        K += k;
     }
     //Computing the shifted lower bound
     for (int i = 0; i < RNS_MODULI_SIZE; i++) {
@@ -160,8 +158,8 @@ GCC_FORCEINLINE void rns_eval_compute_fast(er_float_ptr low, er_float_ptr upp, i
     //Setting the result lower and upper bounds of eval with appropriate correction (scaling by a power of two)
     er_set_d(low, suml);
     er_set_d(upp, sumu);
-    low->exp -= j;
-    upp->exp -= j;
+    low->exp -= K;
+    upp->exp -= K;
 }
 
 
@@ -184,6 +182,8 @@ namespace cuda{
         double fracu[RNS_MODULI_SIZE];
         double suml = 0.0;
         double sumu = 0.0;
+        int mrd[RNS_MODULI_SIZE];
+        int mr = -1;
         //Computing the products x_i * w_i (mod m_i) and the corresponding fractions (lower and upper)
         cuda::rns_mul(s, x, cuda::RNS_PART_MODULI_PRODUCT_INVERSE);
         for (int i = 0; i < RNS_MODULI_SIZE; i++) {
@@ -204,28 +204,24 @@ namespace cuda{
         unsigned int whu = (unsigned int) (sumu);
         suml = __dsub_rd(suml, whl);    // lower bound
         sumu = __dsub_ru(sumu, whu);    // upper bound
-        //Checking the correctness and adjusting
-        bool huge = false;
-        bool tiny = false;
-        if (whl != whu) { //Interval evaluation is wrong
-            int mr[RNS_MODULI_SIZE];
-            cuda::perform_mrc(mr, x); //Computing the mixed-radix representation of x
-            if (mr[RNS_MODULI_SIZE - 1] == 0) {
-                tiny = true; //Number is too small, the lower bound is incorrect
-                cuda::er_set(low, &cuda::RNS_EVAL_UNIT.low);
-            } else {
-                huge = true;  // Number is too large, incorrect upper bound
-                cuda::er_set(upp, &cuda::RNS_EVAL_INV_UNIT.upp);
-            }
+        //Assign the computed values to the result
+        cuda::er_set_d(low, suml);
+        cuda::er_set_d(upp, sumu);
+        //Check for ambiguity
+        if(whl != whu) {
+            cuda::perform_mrc(mrd, x); //Computing the mixed-radix representation of x
+            mr = mrd[RNS_MODULI_SIZE - 1];
         }
-        /*
-         * Accuracy checking
-         * If the lower bound is incorrectly calculated (the number is too small), then refinement may be required;
-         * If the upper bound is incorrectly calculated (the number is too large), no refinement is required.
-        */
-        if (huge || sumu >= accuracy_constant) { // Refinement is not required
-            if (!tiny)  cuda::er_set_d(low, suml);
-            if (!huge)  cuda::er_set_d(upp, sumu);
+        //Adjust if ambiguity was found
+        if(mr > 0){
+            cuda::er_set(upp, &cuda::RNS_EVAL_INV_UNIT.upp);
+            return;
+        }
+        if(mr == 0){
+            cuda::er_set(low, &cuda::RNS_EVAL_UNIT.low);
+        }
+        // Refinement is not required
+        if(sumu >= accuracy_constant){
             return;
         }
         //Need more accuracy. Performing a refinement loop with stepwise calculation of the shifted upper bound
@@ -330,125 +326,86 @@ namespace cuda{
     DEVICE_CUDA_FORCEINLINE void rns_eval_compute_parallel(er_float_ptr low, er_float_ptr upp, int * x) {
         double accuracy_constant = cuda::RNS_EVAL_ACCURACY;
         int modulus = cuda::RNS_MODULI[threadIdx.x];
-        int mr;
-        __shared__ double fracl[RNS_MODULI_SIZE];
-        __shared__ double fracu[RNS_MODULI_SIZE];
-        __shared__ bool control;
-        __shared__ bool ambiguity;
+        int mr = -1;
+        __shared__ double shl;
+        __shared__ double shu;
+        __shared__ int shm;
 
         //Computing the products x_i * w_i (mod m_i) and the corresponding fractions (lower and upper)
         int s = cuda::mod_mul(x[threadIdx.x], cuda::RNS_PART_MODULI_PRODUCT_INVERSE[threadIdx.x], modulus, cuda::RNS_MODULI_RECIPROCAL[threadIdx.x]);
-        fracl[threadIdx.x] = __ddiv_rd(s, (double) modulus);
-        fracu[threadIdx.x] = __ddiv_ru(s, (double) modulus);
-        __syncthreads();
-
-        //Parallel reduction. The result in fracl[0] and fracu[0]
-        for (unsigned int i = RNS_PARALLEL_REDUCTION_IDX; i > 0; i >>= 1) {
-            if (threadIdx.x < i && threadIdx.x + i < RNS_MODULI_SIZE) {
-                fracl[threadIdx.x] = __dadd_rd(fracl[threadIdx.x], fracl[threadIdx.x + i]);
-                fracu[threadIdx.x] = __dadd_ru(fracu[threadIdx.x], fracu[threadIdx.x + i]);
-            }
-            __syncthreads();
+        //Reduction
+        double suml = cuda::block_reduce_sum_rd(__ddiv_rd(s, (double) modulus), RNS_MODULI_SIZE);
+        double sumu = cuda::block_reduce_sum_ru(__ddiv_ru(s, (double) modulus), RNS_MODULI_SIZE);
+        //Broadcast sums among all threads
+        if(threadIdx.x == 0){
+            shl = suml;
+            shu = sumu;
         }
-
-        //Check for zero and ambiguity
-        if (threadIdx.x == 0) {
-            //Check for zero
-            control = false;
-            if(fracl[0] == 0 && fracu[0] == 0){
+        __syncthreads();
+        suml = shl;
+        sumu = shu;
+        //Check for zero
+        if(suml == 0 && sumu == 0){
+            if(threadIdx.x == 0){
                 cuda::er_set(low, &cuda::RNS_EVAL_ZERO_BOUND);
                 cuda::er_set(upp, &cuda::RNS_EVAL_ZERO_BOUND);
-                control = true;
             }
-            //Splitting into whole and fractional parts
-            unsigned int whl = (unsigned int) (fracl[0]);
-            unsigned int whu = (unsigned int) (fracu[0]);
-            fracl[0] = __dsub_rd(fracl[0], whl);    // lower bound
-            fracu[0] = __dsub_ru(fracu[0], whu);    // upper bound
-
-            //Check for ambiguity
-            ambiguity = whl != whu;
+            return;
         }
-        __syncthreads();
-        //Number is zero
-        if( control ){ return; }
-        //Ambiguity case, perform mixed-radix conversion
-        if(ambiguity){
-            mr = cuda::get_mrmsd_parallel(x); // The result is stored in mr (only for thread 0)
-        }
-        //__syncthreads();
-
-        //Resolve ambiguity and check accuracy
+        //Splitting into whole and fractional parts
+        unsigned int whl = (unsigned int) (suml);
+        unsigned int whu = (unsigned int) (sumu);
+        suml = __dsub_rd(suml, whl);    // lower bound
+        sumu = __dsub_ru(sumu, whu);    // upper bound
+        //Assign the computed values to the result
         if(threadIdx.x == 0){
-            bool huge = false;
-            bool tiny = false;
-            if(ambiguity){
-                if (mr == 0) {
-                    tiny = true; //Number is too small, the lower bound is incorrect
-                    cuda::er_set(low, &cuda::RNS_EVAL_UNIT.low);
-                } else {
-                    huge = true;  // Number is too large, incorrect upper bound
-                    cuda::er_set(upp, &cuda::RNS_EVAL_INV_UNIT.upp);
-                }
-            }
-            /*
-            * Accuracy checking
-            * If the lower bound is incorrectly calculated (the number is too small), then refinement may be required;
-            * If the upper bound is incorrectly calculated (the number is too large), no refinement is required.
-            */
-            if (huge || fracu[0] >= accuracy_constant) { // Refinement is not required
-                if (!tiny)  cuda::er_set_d(low, fracl[0]);
-                if (!huge)  cuda::er_set_d(upp, fracu[0]);
-            } else{
-                control = true;
-            }
+            cuda::er_set_d(low, suml);
+            cuda::er_set_d(upp, sumu);
         }
-        __syncthreads();
-
-        /*
-         * Incremental refinement
-         */
-        if(control){
-            int K = 0;
-            while (fracu[0] < accuracy_constant) {
-                //The improvement is that the refinement factor depends on the value of X
-                int k = MAX(-(ceil(log2(fracu[0]))+1), cuda::RNS_EVAL_REF_FACTOR);
-                s = cuda::mod_mul(s, cuda::RNS_POW2[k][threadIdx.x], modulus, cuda::RNS_MODULI_RECIPROCAL[threadIdx.x]);
-                fracu[threadIdx.x] = __ddiv_ru(s, (double) modulus);
-                __syncthreads();
-                //Parallel reduction
-                for (unsigned int i = RNS_PARALLEL_REDUCTION_IDX; i > 0; i >>= 1) {
-                    if (threadIdx.x < i && threadIdx.x + i < RNS_MODULI_SIZE) {
-                        fracu[threadIdx.x] = __dadd_ru(fracu[threadIdx.x], fracu[threadIdx.x + i]);
-                    }
-                    __syncthreads();
-                }
-                if(threadIdx.x == 0){
-                    fracu[0] = __dsub_ru(fracu[0], (unsigned int)fracu[0]);    // upper bound
-                }
-                K += k;
-                __syncthreads();
-            }
-
-            /*
-             * Computing the lower bound
-             */
-            fracl[threadIdx.x] = __ddiv_rd(s, (double) modulus);
+        //Check for ambiguity
+        if(whl != whu) {
+            mr = cuda::get_mrmsd_parallel(x); // The result is stored in mr (only for thread 0)
+            //Broadcast mr among all threads
+            if (threadIdx.x == 0) shm = mr;
             __syncthreads();
-            for (unsigned int i = RNS_PARALLEL_REDUCTION_IDX; i > 0; i >>= 1) {
-                if (threadIdx.x < i && threadIdx.x + i < RNS_MODULI_SIZE) {
-                    fracl[threadIdx.x] = __dadd_rd(fracl[threadIdx.x], fracl[threadIdx.x + i]);
-                }
-                __syncthreads();
-            }
-            if(threadIdx.x == 0){
-                fracl[0] = __dsub_rd(fracl[0], (unsigned int)fracl[0]);    // upper bound
-                //Setting the result lower and upper bounds of eval with appropriate correction (scaling by a power of two)
-                cuda::er_set_d(low, fracl[0]);
-                cuda::er_set_d(upp, fracu[0]);
-                low->exp -= K;
-                upp->exp -= K;
-            }
+            mr = shm;
+        }
+        //Adjust if ambiguity was found
+        if(mr > 0){
+            if(threadIdx.x == 0) cuda::er_set(upp, &cuda::RNS_EVAL_INV_UNIT.upp);
+            return;
+        }
+        if(mr == 0){
+            if(threadIdx.x == 0) cuda::er_set(low, &cuda::RNS_EVAL_UNIT.low);
+        }
+        // Refinement is not required
+        if(sumu >= accuracy_constant){
+            return;
+        }
+
+        //Need more accuracy. Performing a refinement loop with stepwise calculation of the upper bound
+        int K = 0;
+        while (sumu < accuracy_constant) {
+            //The improvement is that the refinement factor depends on the value of X
+            int k = MAX(-(ceil(log2(sumu))+1), cuda::RNS_EVAL_REF_FACTOR);
+            s = cuda::mod_mul(s, cuda::RNS_POW2[k][threadIdx.x], modulus, cuda::RNS_MODULI_RECIPROCAL[threadIdx.x]);
+            sumu = cuda::block_reduce_sum_ru(__ddiv_ru(s, (double) modulus), RNS_MODULI_SIZE);
+            //Broadcast sums among all threads
+            if(threadIdx.x == 0) shu = sumu;
+            __syncthreads();
+            sumu = shu;
+            sumu = __dsub_ru(sumu, (unsigned int)sumu); // upper bound
+            K += k;
+        }
+        //Computing the lower bound, broadcast does not required
+        suml = cuda::block_reduce_sum_rd(__ddiv_rd(s, (double) modulus), RNS_MODULI_SIZE);
+        suml = __dsub_rd(suml, (unsigned int)suml);
+        if(threadIdx.x == 0){
+            //Setting the result lower and upper bounds of eval with appropriate correction (scaling by a power of two)
+            cuda::er_set_d(low, suml);
+            cuda::er_set_d(upp, sumu);
+            low->exp -= K;
+            upp->exp -= K;
         }
     }
 
