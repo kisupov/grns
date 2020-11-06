@@ -47,5 +47,8 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort =
 #define MAX(a,b) (a > b ? a : b)
 #endif
 
+#ifndef IS_POW_2
+#define IS_POW_2(n) ((n & (n - 1)) == 0)
+#endif
 
 #endif //GRNS_COMMON_CUH

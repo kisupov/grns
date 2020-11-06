@@ -471,6 +471,16 @@ void printError(interval_ptr eval, er_float_ptr exact) {
     }
 }
 
+/*
+ *  Printing the computed interval evaluation
+ */
+void printEval(interval_ptr eval) {
+    std::cout << "eval_low  = ";
+    er_print(&eval->low);
+    std::cout << "\neval_upp  = ";
+    er_print(&eval->upp);
+}
+
 void resetResult(interval_t * res, int iterations){
     for(int i = 0; i < iterations; i++){
         er_set_d(&res[i].low, 0.0);
@@ -507,16 +517,28 @@ __global__ void run_rns_eval_compute_parallel(interval_t * res, int * x, int ite
     }
 }
 
-// Main test
-void run_test(int iterations) {
+__global__ void run_rns_eval_compute_origin(interval_t * res, int * x, int iterations){
+    for (int i = 0; i < iterations; i++){
+        cuda::rns_eval_compute_origin(&res[i].low, &res[i].upp, &x[i * RNS_MODULI_SIZE]);
+    }
+}
+
+__global__ void run_rns_eval_compute_parallel_origin(interval_t * res, int * x, int iterations){
+    for (int i = 0; i < iterations; i++){
+        cuda::rns_eval_compute_parallel_origin(&res[i].low, &res[i].upp, &x[i * RNS_MODULI_SIZE]);
+    }
+}
+
+// First test - random array
+void run_test1(int iterations) {
     Logger::printDash();
     InitCpuTimer();
     InitCudaTimer();
 
     // Host data
     int * hx = new int[iterations * RNS_MODULI_SIZE];
-    interval_t * hresult = new interval_t[iterations];
-    er_float_t * exact = new er_float_t[iterations];
+    auto * hresult = new interval_t[iterations];
+    auto * exact = new er_float_t[iterations];
 
     // Device data
     int * dx;
@@ -629,6 +651,149 @@ void run_test(int iterations) {
     cudaFree(dresult);
 }
 
+// Second test - all powers of two from 1 to M -1
+void run_test2() {
+    Logger::printDash();
+    InitCpuTimer();
+    InitCudaTimer();
+
+    int size = RNS_MODULI_PRODUCT_LOG2 + 1;
+
+    // Host data
+    int * hx = new int[size * RNS_MODULI_SIZE];
+    auto * hresult = new interval_t[size];
+
+    // Device data
+    int * dx;
+    interval_t * dresult;
+
+    // Memory allocation
+    cudaMalloc(&dx, sizeof(int) * size * RNS_MODULI_SIZE);
+    cudaMalloc(&dresult, sizeof(interval_t) * size);
+
+    checkDeviceHasErrors(cudaDeviceSynchronize());
+    cudaCheckErrors();
+
+    // Generate inputs
+    int entry[RNS_MODULI_SIZE];
+    int two[RNS_MODULI_SIZE];
+    std::fill_n(entry, RNS_MODULI_SIZE, 1);
+    std::fill_n(two, RNS_MODULI_SIZE, 2);
+    for(int i = 0; i < size; i++){
+        for(int j = 0; j < RNS_MODULI_SIZE; j++){
+            hx[i * RNS_MODULI_SIZE + j] = entry[j];
+        }
+        rns_mul(entry, entry, two);
+    }
+
+    //Copying data to the GPU
+    cudaMemcpy(dx, hx, sizeof(int) * RNS_MODULI_SIZE * size, cudaMemcpyHostToDevice);
+    //---------------------------------------------------------
+    PrintTimerName("[CPU] rns_eval_compute");
+    resetResult(hresult, size);
+    //Launch
+    StartCpuTimer();
+    for(int i = 0; i < size; i++){
+        rns_eval_compute(&hresult[i].low, &hresult[i].upp, &hx[i * RNS_MODULI_SIZE]);
+    }
+    EndCpuTimer();
+    PrintCpuTimer("took");
+    printEval(&hresult[size-1]);
+    //---------------------------------------------------------
+    Logger::printSpace();
+    Logger::printDash();
+    PrintTimerName("[CPU] rns_eval_compute_origin");
+    resetResult(hresult, size);
+    //Launch
+    StartCpuTimer();
+    for(int i = 0; i < size; i++){
+        rns_eval_compute_origin(&hresult[i].low, &hresult[i].upp, &hx[i * RNS_MODULI_SIZE]);
+    }
+    EndCpuTimer();
+    PrintCpuTimer("took");
+    printEval(&hresult[size-1]);
+    //---------------------------------------------------------
+    Logger::printSpace();
+    Logger::printDDash();
+    PrintTimerName("[CUDA] rns_eval_compute");
+    resetResult(hresult, size);
+    resetResultCuda<<<1, 1>>>(dresult, size);
+    checkDeviceHasErrors(cudaDeviceSynchronize());
+    cudaCheckErrors();
+    //Launch
+    StartCudaTimer();
+    run_rns_eval_compute<<<1,1>>>(dresult, dx, size);
+    EndCudaTimer();
+    PrintCudaTimer("took");
+    //Copying to the host
+    cudaMemcpy(hresult, dresult, sizeof(interval_t) * size, cudaMemcpyDeviceToHost);
+    checkDeviceHasErrors(cudaDeviceSynchronize());
+    cudaCheckErrors();
+    printEval(&hresult[size-1]);
+    //---------------------------------------------------------
+    Logger::printSpace();
+    Logger::printDash();
+    PrintTimerName("[CUDA] rns_eval_compute_origin");
+    resetResult(hresult, size);
+    resetResultCuda<<<1, 1>>>(dresult, size);
+    checkDeviceHasErrors(cudaDeviceSynchronize());
+    cudaCheckErrors();
+    //Launch
+    StartCudaTimer();
+    run_rns_eval_compute_origin<<<1,1>>>(dresult, dx, size);
+    EndCudaTimer();
+    PrintCudaTimer("took");
+    //Copying to the host
+    cudaMemcpy(hresult, dresult, sizeof(interval_t) * size, cudaMemcpyDeviceToHost);
+    checkDeviceHasErrors(cudaDeviceSynchronize());
+    cudaCheckErrors();
+    printEval(&hresult[size-1]);
+    //---------------------------------------------------------
+    Logger::printSpace();
+    Logger::printDDash();
+    PrintTimerName("[CUDA] rns_eval_compute_parallel");
+    resetResult(hresult, size);
+    resetResultCuda<<<1, 1>>>(dresult, size);
+    checkDeviceHasErrors(cudaDeviceSynchronize());
+    cudaCheckErrors();
+    //Launch
+    StartCudaTimer();
+    run_rns_eval_compute_parallel<<<1,RNS_MODULI_SIZE>>>(dresult, dx, size);
+    EndCudaTimer();
+    PrintCudaTimer("took");
+    checkDeviceHasErrors(cudaDeviceSynchronize());
+    cudaCheckErrors();
+    //Copying to the host
+    cudaMemcpy(hresult, dresult, sizeof(interval_t) * size, cudaMemcpyDeviceToHost);
+    printEval(&hresult[size-1]);
+    //---------------------------------------------------------
+    Logger::printSpace();
+    Logger::printDash();
+    PrintTimerName("[CUDA] rns_eval_compute_parallel_origin");
+    resetResult(hresult, size);
+    resetResultCuda<<<1, 1>>>(dresult, size);
+    checkDeviceHasErrors(cudaDeviceSynchronize());
+    cudaCheckErrors();
+    //Launch
+    StartCudaTimer();
+    run_rns_eval_compute_parallel_origin<<<1, RNS_MODULI_SIZE>>>(dresult, dx, size);
+    EndCudaTimer();
+    PrintCudaTimer("took");
+    checkDeviceHasErrors(cudaDeviceSynchronize());
+    cudaCheckErrors();
+    //Copying to the host
+    cudaMemcpy(hresult, dresult, sizeof(interval_t) * size, cudaMemcpyDeviceToHost);
+    printEval(&hresult[size-1]);
+    Logger::printSpace();
+    //---------------------------------------------------------
+
+    // Cleanup
+    delete [] hx;
+    delete [] hresult;
+    cudaFree(dx);
+    cudaFree(dresult);
+}
+
 int main() {
     cudaDeviceReset();
     rns_const_init();
@@ -640,7 +805,8 @@ int main() {
     rns_eval_const_print();
     Logger::endSection(true);
     Logger::printSpace();
-    run_test(ITERATIONS);
+    //run_test1(ITERATIONS);
+    run_test2();
     Logger::endTestDescription();
     return 0;
 }

@@ -59,3 +59,7 @@ target_link_libraries(test_perf_mpint gmp mpfr OpenMP::OpenMP_CXX)
 add_executable(test_perf_mpint_add test_perf_mpint_add.cu)
 target_compile_options(test_perf_mpint_add PRIVATE  $<${cuda_lang}:$<BUILD_INTERFACE:${GLOBAL_COMPILE_OPTIONS}>>)
 target_link_libraries(test_perf_mpint_add gmp mpfr OpenMP::OpenMP_CXX)
+
+# Test for checking the correctness of parallel reduction
+add_executable(test_verify_reduction test_verify_reduction.cu)
+target_compile_options(test_verify_reduction PRIVATE  $<${cuda_lang}:$<BUILD_INTERFACE:${GLOBAL_COMPILE_OPTIONS}>>)

@@ -463,7 +463,7 @@ GCC_FORCEINLINE double psum_rd(const double *x) {
 namespace cuda {
 
     /*
-     * Below are the internal CUDA routines for pairwise summation
+     * Below are the internal CUDA routines for SERIAL pairwise summation
      */
 
     /********************* Current rounding mode *********************/
@@ -908,6 +908,92 @@ namespace cuda {
         } else {
             return 0;
         }
+    }
+
+
+    /*
+     * Below are the internal CUDA routines for PARALLEL summation
+     * Source code is from https://developer.nvidia.com/blog/faster-parallel-reductions-kepler/
+     * Array size restrictions: 0 <= SIZE <= 1024
+     */
+
+    /*
+     * Reduction within a warp using shuffle down to build a reduction tree.
+     * After executing the three reduction, 0 thread in the warp have the total reduced value (sum) in its val variable
+     */
+    #define FULL_MASK 0xffffffff
+    DEVICE_CUDA_FORCEINLINE double warp_reduce_sum(double val) {
+        for (int offset = warpSize/2; offset > 0; offset >>= 1){
+            val += __shfl_down_sync(FULL_MASK, val, offset);
+        }
+        return val;
+    }
+
+    DEVICE_CUDA_FORCEINLINE double warp_reduce_sum_rd(double val) {
+        for (int offset = warpSize/2; offset > 0; offset >>= 1){
+            val = __dadd_rd(val, __shfl_down_sync(FULL_MASK, val, offset));
+        }
+        return val;
+    }
+
+    DEVICE_CUDA_FORCEINLINE double warp_reduce_sum_ru(double val) {
+        for (int offset = warpSize/2; offset > 0; offset >>= 1){
+            val = __dadd_ru(val, __shfl_down_sync(FULL_MASK, val, offset));
+        }
+        return val;
+    }
+
+    /*
+     * Reduction across the entire block.
+     * We first reduce within warps. Then the first thread of each warp writes its partial sum to shared memory.
+     * Finally, after synchronizing, the first warp reads from shared memory and reduces again
+     * After executing the reduction, 0 thread in the block have the total reduced value in its val variable
+     */
+    DEVICE_CUDA_FORCEINLINE double block_reduce_sum(double val, const int n) {
+        static __shared__ double shared[32]; // Shared mem for 32 partial sums
+        if(blockDim.x < warpSize){
+            return warp_reduce_sum(val);
+        }
+        int lane = threadIdx.x % warpSize;
+        int wid = threadIdx.x / warpSize;
+        val = warp_reduce_sum(val);     // Each warp performs partial reduction
+        if (lane==0) shared[wid]=val;   // Write reduced value to shared memory
+        __syncthreads();                // Wait for all partial reductions
+        //Read from shared memory only if that warp existed
+        //The code depends on whether the size of the array is a power of two
+        val = ( (threadIdx.x < blockDim.x / warpSize) || !IS_POW_2(n) && threadIdx.x == blockDim.x / warpSize) ? shared[lane] : double(0);
+        if (wid==0) val = warp_reduce_sum(val); //Final reduce within first warp
+        return val;
+    }
+
+    DEVICE_CUDA_FORCEINLINE double block_reduce_sum_rd(double val, const int n) {
+        static __shared__ double shared[32];
+        if(blockDim.x < warpSize){
+            return warp_reduce_sum_rd(val);
+        }
+        int lane = threadIdx.x % warpSize;
+        int wid = threadIdx.x / warpSize;
+        val = warp_reduce_sum_rd(val);
+        if (lane==0) shared[wid]=val;
+        __syncthreads();
+        val = ( (threadIdx.x < blockDim.x / warpSize) || !IS_POW_2(n) && threadIdx.x == blockDim.x / warpSize) ? shared[lane] : double(0);
+        if (wid==0) val = warp_reduce_sum_rd(val);
+        return val;
+    }
+
+    DEVICE_CUDA_FORCEINLINE double block_reduce_sum_ru(double val, const int n) {
+        static __shared__ double shared[32];
+        if(blockDim.x < warpSize){
+            return warp_reduce_sum_ru(val);
+        }
+        int lane = threadIdx.x % warpSize;
+        int wid = threadIdx.x / warpSize;
+        val = warp_reduce_sum_ru(val);
+        if (lane==0) shared[wid]=val;
+        __syncthreads();
+        val = ( (threadIdx.x < blockDim.x / warpSize) || !IS_POW_2(n) && threadIdx.x == blockDim.x / warpSize) ? shared[lane] : double(0);
+        if (wid==0) val = warp_reduce_sum_ru(val);
+        return val;
     }
 
 } //end of namespace
