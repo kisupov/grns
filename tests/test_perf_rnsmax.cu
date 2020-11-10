@@ -1,5 +1,5 @@
 /*
- *  Test for checking the routine for finding the maximum element in an array of RNS numbers
+ *  Test for measure the performance of finding the maximum element in an array of RNS numbers
  */
 
 #include <stdio.h>
@@ -7,21 +7,35 @@
 #include "../src/dpp/rnsmax.cuh"
 #include "tsthelper.cuh"
 #include "logger.cuh"
+#include "timers.cuh"
 
-#define RNS_MAX_NUM_BLOCKS_1 32
-#define RNS_MAX_BLOCK_SIZE_1 32
-#define RNS_MAX_NUM_BLOCKS_2 32
-#define RNS_MAX_BLOCK_SIZE_2 32
+#define ARRAY_SIZE 1000000
+#define RNS_MAX_NUM_BLOCKS_1 8192
+#define RNS_MAX_BLOCK_SIZE_1 64
+#define RNS_MAX_NUM_BLOCKS_2 1024
+#define RNS_MAX_BLOCK_SIZE_2 64
 
 static void printResult(int * result){
     mpz_t binary;
     mpz_init(binary);
     rns_to_binary(binary, result);
-    printf("\nresult: %s", mpz_get_str(NULL, 10, binary));
+    printf("result: %s", mpz_get_str(NULL, 10, binary));
     mpz_clear(binary);
 }
 
+void resetResult(int * r){
+    memset(r, 0, RNS_MODULI_SIZE * sizeof(int));
+}
+
+__global__ void resetResultCuda(int * r) {
+  for(int i = 0; i < RNS_MODULI_SIZE; i++){
+      r[i] = 0;
+  }
+}
+
 void run_test(int array_size){
+    InitCudaTimer();
+
     mpz_t * hx = new mpz_t[array_size];
     mpz_t hmax;
 
@@ -72,17 +86,27 @@ void run_test(int array_size){
     Logger::printSpace();
     //---------------------------------------------------------
     Logger::printDash();
-    printf("[CUDA] rns_max:");
+    PrintTimerName("[CUDA] rns_max");
+    resetResult(hrmax);
+    resetResultCuda<<<1, 1>>>(drmax);
+    checkDeviceHasErrors(cudaDeviceSynchronize());
+    cudaCheckErrors();
+    //Launch
+    StartCudaTimer();
     cuda::rns_max<
             RNS_MAX_NUM_BLOCKS_1,
             RNS_MAX_BLOCK_SIZE_1,
             RNS_MAX_NUM_BLOCKS_2,
             RNS_MAX_BLOCK_SIZE_2>(drmax, drx, array_size, dbuf);
+    EndCudaTimer();
+    PrintCudaTimer("took");
+    //Copying to the host
     cudaMemcpy(hrmax, drmax, sizeof(int) * RNS_MODULI_SIZE, cudaMemcpyDeviceToHost);
     printResult(hrmax);
     Logger::printSpace();
     checkDeviceHasErrors(cudaDeviceSynchronize());
     cudaCheckErrors();
+
     //---------------------------------------------------------
     Logger::printSpace();
     //Cleanup
@@ -98,17 +122,20 @@ void run_test(int array_size){
 }
 
 int main() {
+    cudaDeviceReset();
     rns_const_init();
-    Logger::beginTestDescription(Logger::TEST_VERIFY_RNSMAX);
-    rns_const_print(true);
+    Logger::beginTestDescription(Logger::TEST_PERF_RNSMAX);
+    Logger::printParam("ARRAY_SIZE", ARRAY_SIZE);
+    Logger::printParam("RNS_MODULI_SIZE", RNS_MODULI_SIZE);
+    Logger::printParam("RNS_MODULI_PRODUCT_LOG2", RNS_MODULI_PRODUCT_LOG2);
     Logger::printDash();
-    rns_eval_const_print();
+    Logger::printParam("RNS_MAX_NUM_BLOCKS_1", RNS_MAX_NUM_BLOCKS_1);
+    Logger::printParam("RNS_MAX_BLOCK_SIZE_1", RNS_MAX_BLOCK_SIZE_1);
+    Logger::printParam("RNS_MAX_NUM_BLOCKS_2", RNS_MAX_NUM_BLOCKS_2);
+    Logger::printParam("RNS_MAX_BLOCK_SIZE_2", RNS_MAX_BLOCK_SIZE_2);
     Logger::endSection(true);
     Logger::printSpace();
-    //Launch
-    run_test(10000);
-    //End logging
-    Logger::printSpace();
+    run_test(ARRAY_SIZE);
     Logger::endTestDescription();
-    return 1;
+    return 0;
 }

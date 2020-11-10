@@ -64,7 +64,12 @@ target_link_libraries(test_perf_mpint_add gmp mpfr OpenMP::OpenMP_CXX)
 add_executable(test_verify_reduction test_verify_reduction.cu)
 target_compile_options(test_verify_reduction PRIVATE  $<${cuda_lang}:$<BUILD_INTERFACE:${GLOBAL_COMPILE_OPTIONS}>>)
 
-# Test for checking the routine for finding the maximum element of an array of RNS numbers
+# Test for checking the routine for finding the maximum element in an array of RNS numbers
 add_executable(test_verify_rnsmax test_verify_rnsmax.cu)
 target_compile_options(test_verify_rnsmax PRIVATE  $<${cuda_lang}:$<BUILD_INTERFACE:${GLOBAL_COMPILE_OPTIONS}>>)
 target_link_libraries(test_verify_rnsmax gmp mpfr OpenMP::OpenMP_CXX)
+
+# Test for measure the performance of finding the maximum element in an array of RNS numbers
+add_executable(test_perf_rnsmax test_perf_rnsmax.cu)
+target_compile_options(test_perf_rnsmax PRIVATE  $<${cuda_lang}:$<BUILD_INTERFACE:${GLOBAL_COMPILE_OPTIONS}>>)
+target_link_libraries(test_perf_rnsmax gmp mpfr OpenMP::OpenMP_CXX)

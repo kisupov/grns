@@ -120,18 +120,17 @@ namespace cuda {
      * The first kernel generates and stores partial reduction results, and the second kernel reduces the partial results into a single total.
      * When looking for the maximum element, we don't really need to write the RNS numbers (partial results) into memory.
      * Instead, we store the interval evaluation and index of the maximum element using the xinterval_t data type
+     * @tparam gridDim1  - number of thread blocks to launch the kernel that calculates interval evaluations
+     * @tparam blockDim1 - number of threads per block to launch the kernel that calculates interval evaluations
+     * @tparam gridDim2 -  number of thread blocks to launch the kernel that perform parallel reduction
+     * @tparam blockDim2 - number of threads per block to launch the kernel that perform parallel reduction
      * @param out - pointer to the maximum RNS number in the global GPU memory, size = RNS_MODULI_SIZE
      * @param in - pointer to the array of RNS numbers of the form [x1,x2,...,xn][x1,x2,...,xn][x1,x2,...,xn]...[x1,x2,...,xn], size at least N * RNS_MODULI_SIZE
      * @param N - number of elements in the array
      * @param buffer - global memory buffer of size at least N
      */
+    template <int gridDim1, int blockDim1, int gridDim2, int blockDim2>
     void rns_max(int *out, int *in, unsigned int N, xinterval_t *buffer) {
-
-        //Execution configuration
-        unsigned int gridDim1 = 32;
-        unsigned int blockDim1 = 32;
-        unsigned int gridDim2 = 32;
-        unsigned int blockDim2 = 32;
 
         size_t memSize = blockDim2 * sizeof(xinterval_t);
         unsigned int pow2 = NEXT_POW2(blockDim2);
