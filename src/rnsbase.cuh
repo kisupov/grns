@@ -229,10 +229,12 @@ static int mod_inverse_mpz(mpz_t x, int m) {
     return (int) inverse;
 }
 
+/********************* Assignment, conversion *********************/
+
 /*
  * Set RNS number target from another RNS number x
  */
-inline void rns_set(int *target, int * x) {
+GCC_FORCEINLINE void rns_set(int *target, int * x) {
     memcpy(target, x, sizeof(int) * RNS_MODULI_SIZE);
 }
 

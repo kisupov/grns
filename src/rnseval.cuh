@@ -49,8 +49,8 @@ GCC_FORCEINLINE void rns_eval_compute(er_float_ptr low, er_float_ptr upp, int * 
     suml = psum_rd<RNS_MODULI_SIZE>(fracl);
     sumu = psum_ru<RNS_MODULI_SIZE>(fracu);
     //Splitting into whole and fractional parts
-    unsigned int whl = (unsigned int) suml; // Whole part
-    unsigned int whu = (unsigned int) sumu; // Whole part
+    auto whl = (unsigned int) suml; // Whole part
+    auto whu = (unsigned int) sumu; // Whole part
     suml = suml - whl;    // Fractional part
     sumu = sumu - whu;    // Fractional part
     //Assign the computed values to the result
@@ -200,8 +200,8 @@ namespace cuda{
             return;
         }
         //Splitting into whole and fractional parts
-        unsigned int whl = (unsigned int) (suml);
-        unsigned int whu = (unsigned int) (sumu);
+        auto whl = (unsigned int) (suml);
+        auto whu = (unsigned int) (sumu);
         suml = __dsub_rd(suml, whl);    // lower bound
         sumu = __dsub_ru(sumu, whu);    // upper bound
         //Assign the computed values to the result
@@ -353,8 +353,8 @@ namespace cuda{
             return;
         }
         //Splitting into whole and fractional parts
-        unsigned int whl = (unsigned int) (suml);
-        unsigned int whu = (unsigned int) (sumu);
+        auto whl = (unsigned int) (suml);
+        auto whu = (unsigned int) (sumu);
         suml = __dsub_rd(suml, whl);    // lower bound
         sumu = __dsub_ru(sumu, whu);    // upper bound
         //Assign the computed values to the result

@@ -21,7 +21,8 @@ namespace Logger {
         TEST_VERIFY_MPINT,
         TEST_PERF_MPINT,
         TEST_PERF_MPINT_ADD,
-        TEST_VERIFY_REDUCTION
+        TEST_VERIFY_REDUCTION,
+        TEST_VERIFY_RNSMAX
     };
 
     const char *testHeaderAsString(enum TestHeader header) {
@@ -48,6 +49,8 @@ namespace Logger {
                 return "Test for measure the performance of the various multiple-precision integer addition algorithms (naive vs optimized)";
             case TEST_VERIFY_REDUCTION:
                 return "Test for checking the correctness of parallel reduction";
+            case TEST_VERIFY_RNSMAX:
+                return "Test for checking the routine for finding the maximum element of an array of RNS numbers";
         }
         return "";
     }

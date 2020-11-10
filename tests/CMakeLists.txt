@@ -63,3 +63,8 @@ target_link_libraries(test_perf_mpint_add gmp mpfr OpenMP::OpenMP_CXX)
 # Test for checking the correctness of parallel reduction
 add_executable(test_verify_reduction test_verify_reduction.cu)
 target_compile_options(test_verify_reduction PRIVATE  $<${cuda_lang}:$<BUILD_INTERFACE:${GLOBAL_COMPILE_OPTIONS}>>)
+
+# Test for checking the routine for finding the maximum element of an array of RNS numbers
+add_executable(test_verify_rnsmax test_verify_rnsmax.cu)
+target_compile_options(test_verify_rnsmax PRIVATE  $<${cuda_lang}:$<BUILD_INTERFACE:${GLOBAL_COMPILE_OPTIONS}>>)
+target_link_libraries(test_verify_rnsmax gmp mpfr OpenMP::OpenMP_CXX)

@@ -51,4 +51,19 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort =
 #define IS_POW_2(n) ((n & (n - 1)) == 0)
 #endif
 
+/*
+ * Round up v to the next highest power of 2
+ * https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+ */
+unsigned int NEXT_POW2(unsigned int v){
+    v--;
+    v |= v >> 1;
+    v |= v >> 2;
+    v |= v >> 4;
+    v |= v >> 8;
+    v |= v >> 16;
+    v++;
+    return v;
+}
+
 #endif //GRNS_COMMON_CUH
