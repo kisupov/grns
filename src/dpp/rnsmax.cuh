@@ -1,6 +1,6 @@
 /*
  *  Data-parallel primitive
- *  Calculation of the maximum element of an array of RNS numbers
+ *  Calculation of the maximum element of an array of RNS numbers using floating-point interval evaluations
  */
 
 #ifndef GRNS_MAX_CUH
@@ -21,7 +21,7 @@ namespace cuda {
      *  1, if x > y
      * -1, if x < y
      */
-    DEVICE_CUDA_FORCEINLINE int rns_max_cmp_xint(xinterval_t *ex, xinterval_t *ey, int *array) {
+    DEVICE_CUDA_FORCEINLINE int rns_max_cmp(xinterval_t *ex, xinterval_t *ey, int *array) {
         if(ey->val < 0){
             return 1;
         }
@@ -84,7 +84,7 @@ namespace cuda {
         sh_eval[threadIdx.x].upp.exp = 0;
         // reduce multiple elements per thread
         while (numberIdx < N){
-            if(cuda::rns_max_cmp_xint(&in_eval[numberIdx], &sh_eval[threadIdx.x], in_num) == 1){
+            if(cuda::rns_max_cmp(&in_eval[numberIdx], &sh_eval[threadIdx.x], in_num) == 1){
                 sh_eval[threadIdx.x] = in_eval[numberIdx];
             }
             numberIdx +=  gridDim.x * blockDim.x;
@@ -93,7 +93,7 @@ namespace cuda {
         // do reduction in shared mem
         auto i = pow2 >> 1;
         while(i >= 1) {
-            if ((threadIdx.x < i) && (threadIdx.x + i < blockDim.x) && cuda::rns_max_cmp_xint(&sh_eval[threadIdx.x + i], &sh_eval[threadIdx.x], in_num) == 1) {
+            if ((threadIdx.x < i) && (threadIdx.x + i < blockDim.x) && cuda::rns_max_cmp(&sh_eval[threadIdx.x + i], &sh_eval[threadIdx.x], in_num) == 1) {
                 sh_eval[threadIdx.x] = sh_eval[threadIdx.x + i];
             }
             i = i >> 1;
