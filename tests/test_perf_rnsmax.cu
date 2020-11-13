@@ -43,7 +43,7 @@ __global__ void rns_max_mrc_compute_kernel(mrd_t *out, int *in, unsigned int N){
     }
 }
 
-__global__ void rns_max_mrc_tree_kernel(mrd_t *out, mrd_t *in, unsigned int N, unsigned int pow2){
+__global__ void rns_max_mrc_tree_kernel(mrd_t *out, mrd_t *in, unsigned int N){
     auto numberIdx =  blockDim.x * blockIdx.x + threadIdx.x;
     extern __shared__ mrd_t shared[];
     shared[threadIdx.x].idx = -1;
@@ -54,7 +54,7 @@ __global__ void rns_max_mrc_tree_kernel(mrd_t *out, mrd_t *in, unsigned int N, u
         numberIdx +=  gridDim.x * blockDim.x;
     }
     __syncthreads();
-    auto i = pow2 >> 1;
+    auto i = cuda::NEXT_POW2(blockDim.x) >> 1;
     while(i >= 1) {
         if ((threadIdx.x < i) && (threadIdx.x + i < blockDim.x) && rns_max_cmp_mrc(&shared[threadIdx.x + i], &shared[threadIdx.x]) == 1) {
             shared[threadIdx.x] = shared[threadIdx.x + i];
@@ -74,13 +74,12 @@ template <int gridDim1, int blockDim1, int gridDim2, int blockDim2>
 void rns_max_mrc(int *out, int *in, unsigned int N, mrd_t *buffer) {
 
     size_t memSize = blockDim2 * sizeof(mrd_t);
-    unsigned int pow2 = NEXT_POW2(blockDim2);
 
     rns_max_mrc_compute_kernel <<< gridDim1, blockDim1 >>> ( buffer, in, N);
 
-    rns_max_mrc_tree_kernel <<< gridDim2, blockDim2, memSize >>> (buffer, buffer, N, pow2);
+    rns_max_mrc_tree_kernel <<< gridDim2, blockDim2, memSize >>> (buffer, buffer, N);
 
-    rns_max_mrc_tree_kernel <<< 1, blockDim2, memSize >>> (buffer, buffer, gridDim2, pow2);
+    rns_max_mrc_tree_kernel <<< 1, blockDim2, memSize >>> (buffer, buffer, gridDim2);
 
     rns_max_mrc_set_kernel <<< 1, RNS_MODULI_SIZE >>> (out, in, buffer);
 
