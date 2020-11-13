@@ -9,7 +9,7 @@
 #include "logger.cuh"
 #include "timers.cuh"
 
-#define ARRAY_SIZE 10000000
+#define ARRAY_SIZE 1000000
 #define RNS_MAX_NUM_BLOCKS_1 8192
 #define RNS_MAX_BLOCK_SIZE_1 64
 #define RNS_MAX_NUM_BLOCKS_2 1024
@@ -171,12 +171,13 @@ void test_rns_max_mrc(int * drx, int array_size) {
 }
 
 //Main benchmark
-void run_test(int array_size){
+void run_test(size_t array_size){
     //Host and device data
     auto * hx = new mpz_t[array_size];
     int * hrx = new int[array_size * RNS_MODULI_SIZE];
     int * drx;
-    cudaMalloc(&drx, sizeof(int) * array_size * RNS_MODULI_SIZE);
+    size_t memsize = sizeof(int) * array_size * RNS_MODULI_SIZE;
+    cudaMalloc(&drx, memsize);
     checkDeviceHasErrors(cudaDeviceSynchronize());
     cudaCheckErrors();
     //Memory allocation
@@ -190,7 +191,7 @@ void run_test(int array_size){
         rns_from_binary(&hrx[i*RNS_MODULI_SIZE], hx[i]);
     }
     // Copying to the GPU
-    cudaMemcpy(drx, hrx, sizeof(int) * array_size * RNS_MODULI_SIZE, cudaMemcpyHostToDevice);
+    cudaMemcpy(drx, hrx, memsize, cudaMemcpyHostToDevice);
     checkDeviceHasErrors(cudaDeviceSynchronize());
     cudaCheckErrors();
 

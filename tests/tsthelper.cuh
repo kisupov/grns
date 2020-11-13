@@ -29,7 +29,7 @@ enum RandomBoundType{
  * @param n - size of array to be filled
  * @param boundType - type of random bound
  */
-void fill_random_array(int *array, int n, RandomBoundType boundType) {
+void fill_random_array(int *array, size_t n, RandomBoundType boundType) {
     mpz_t randNum;                                  // Hold our random numbers
     mpz_t rndBnd;                                   // Bound for mpz_urandomm
     gmp_randstate_t state;                          // Random generator state object
@@ -49,7 +49,7 @@ void fill_random_array(int *array, int n, RandomBoundType boundType) {
             break;
     }
     //mpz_set_ui(rndBnd, 10);
-    for (int i = 0; i < n; i++) {
+    for (auto i = 0; i < n; i++) {
         mpz_urandomm(randNum, state, rndBnd);
         rns_from_binary(&array[i*RNS_MODULI_SIZE], randNum);
     }
@@ -65,7 +65,7 @@ void fill_random_array(int *array, int n, RandomBoundType boundType) {
  * @param boundType - type of random bound
  * @param allowNegative - true if negative values are permitted
  */
-void fill_random_array(mpz_t *array, int n, RandomBoundType boundType, bool allowNegative) {
+void fill_random_array(mpz_t *array, size_t n, RandomBoundType boundType, bool allowNegative) {
     mpz_t rndBnd;                                   // Bound for mpz_urandomm
     gmp_randstate_t state;                          // Random generator state object
     gmp_randinit_default(state);                    // Initialize state for a Mersenne Twister algorithm
@@ -88,7 +88,7 @@ void fill_random_array(mpz_t *array, int n, RandomBoundType boundType, bool allo
             mpz_sub_ui(rndBnd, RNS_MODULI_PRODUCT, 1);
             break;
     }
-    for (int i = 0; i < n; i++) {
+    for (auto i = 0; i < n; i++) {
         mpz_urandomm(array[i], state, rndBnd);
         if(allowNegative){
             mpz_mod_ui(temp, array[i], 2);
