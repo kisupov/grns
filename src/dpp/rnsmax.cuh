@@ -78,10 +78,6 @@ namespace cuda {
         auto numberIdx =  blockDim.x * blockIdx.x + threadIdx.x;
         extern __shared__ xinterval_t sh_eval[];
         sh_eval[threadIdx.x].val = -1;
-        sh_eval[threadIdx.x].low.frac = 0;
-        sh_eval[threadIdx.x].low.exp = 0;
-        sh_eval[threadIdx.x].upp.exp = 0;
-        sh_eval[threadIdx.x].upp.exp = 0;
         // reduce multiple elements per thread
         while (numberIdx < N){
             if(cuda::rns_max_cmp(&in_eval[numberIdx], &sh_eval[threadIdx.x], in_num) == 1){
