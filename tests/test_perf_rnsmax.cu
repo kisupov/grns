@@ -72,9 +72,9 @@ __global__ void rns_max_mrc_set_kernel(int *out, int *in, mrd_t *mrd){
 
 void rns_max_mrc(int *out, int *in, unsigned int N, mrd_t *buffer) {
     //Execution config
-    int gridDim1 = 64;   //4096 for 8-moduli set
-    int blockDim1 = 128; //64 for 8-moduli set
-    int gridDim2 = 1024;
+    int gridDim1 = 128;
+    int blockDim1 = 64;
+    int gridDim2 = 256;
     int blockDim2 = 128;
 
     size_t memSize = blockDim2 * sizeof(mrd_t);
