@@ -10,7 +10,7 @@
 #include "timers.cuh"
 
 #define ARRAY_SIZE 1000000
-#define RNS_MAX_NUM_BLOCKS_1 8192
+#define RNS_MAX_NUM_BLOCKS_1 4096
 #define RNS_MAX_BLOCK_SIZE_1 64
 #define RNS_MAX_NUM_BLOCKS_2 1024
 #define RNS_MAX_BLOCK_SIZE_2 64
@@ -70,19 +70,19 @@ __global__ void rns_max_mrc_set_kernel(int *out, int *in, mrd_t *mrd){
     out[threadIdx.x] = in[idx];
 }
 
-template <int gridDim1, int blockDim1, int gridDim2, int blockDim2>
 void rns_max_mrc(int *out, int *in, unsigned int N, mrd_t *buffer) {
+    //Execution config
+    int gridDim1 = 64;   //4096 for 8-moduli set
+    int blockDim1 = 128; //64 for 8-moduli set
+    int gridDim2 = 1024;
+    int blockDim2 = 128;
 
     size_t memSize = blockDim2 * sizeof(mrd_t);
-
     rns_max_mrc_compute_kernel <<< gridDim1, blockDim1 >>> ( buffer, in, N);
-
+    //rns_max_mrc_compute_kernel <<< 4096, 64 >>> ( buffer, in, N);
     rns_max_mrc_tree_kernel <<< gridDim2, blockDim2, memSize >>> (buffer, buffer, N);
-
     rns_max_mrc_tree_kernel <<< 1, blockDim2, memSize >>> (buffer, buffer, gridDim2);
-
     rns_max_mrc_set_kernel <<< 1, RNS_MODULI_SIZE >>> (out, in, buffer);
-
     checkDeviceHasErrors(cudaDeviceSynchronize());
     cudaCheckErrors();
 }
@@ -148,11 +148,7 @@ void test_rns_max_mrc(int * drx, int array_size) {
     cudaCheckErrors();
     //Launch
     StartCudaTimer();
-    rns_max_mrc<
-            RNS_MAX_NUM_BLOCKS_1,
-            RNS_MAX_BLOCK_SIZE_1,
-            RNS_MAX_NUM_BLOCKS_2,
-            RNS_MAX_BLOCK_SIZE_2>(dresult, drx, array_size, dbuf);
+    rns_max_mrc(dresult, drx, array_size, dbuf);
     EndCudaTimer();
     PrintCudaTimer("took");
     checkDeviceHasErrors(cudaDeviceSynchronize());

@@ -128,17 +128,11 @@ namespace cuda {
      */
     template <int gridDim1, int blockDim1, int gridDim2, int blockDim2>
     void rns_max(int *out, int *in, unsigned int N, xinterval_t *buffer) {
-
         size_t memSize = blockDim2 * sizeof(xinterval_t);
-
         cuda::rns_max_eval_kernel <<< gridDim1, blockDim1 >>> ( buffer, in, N);
-
         cuda::rns_max_tree_kernel <<< gridDim2, blockDim2, memSize >>> (buffer, buffer, in, N);
-
         cuda::rns_max_tree_kernel <<< 1, blockDim2, memSize >>> (buffer, buffer, in, gridDim2);
-
         cuda::rns_max_set_kernel <<< 1, RNS_MODULI_SIZE >>> (out, in, buffer);
-
         checkDeviceHasErrors(cudaDeviceSynchronize());
         cudaCheckErrors();
     }
