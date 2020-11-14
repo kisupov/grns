@@ -75,7 +75,7 @@ void rns_max_mrc(int *out, int *in, unsigned int N, mrd_t *buffer) {
     int gridDim1 = 128;
     int blockDim1 = 64;
     int gridDim2 = 256;
-    int blockDim2 = 128;
+    int blockDim2 = 128; //32 or 64 for 64-bit moduli
 
     size_t memSize = blockDim2 * sizeof(mrd_t);
     rns_max_mrc_compute_kernel <<< gridDim1, blockDim1 >>> ( buffer, in, N);

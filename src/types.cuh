@@ -31,12 +31,12 @@ typedef interval_t * interval_ptr;
 
 /*!
  * Interval evaluation of an RNS number supplemented by an additional integer field that can be used for different purposes,
- * for example, as some flag or as an index of the number in an array
+ * for example, as an index in an array or some flag
  */
 typedef struct {
     er_float_t low;
     er_float_t upp;
-    int val;
+    int idx;
 } xinterval_t;
 
 /*!

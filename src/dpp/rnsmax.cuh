@@ -22,10 +22,10 @@ namespace cuda {
      * -1, if x < y
      */
     DEVICE_CUDA_FORCEINLINE int rns_max_cmp(xinterval_t *ex, xinterval_t *ey, int *array) {
-        if(ey->val < 0){
+        if(ey->idx < 0){
             return 1;
         }
-        if(ex->val < 0){
+        if(ex->idx < 0){
             return -1;
         }
         if(cuda::er_ucmp(&ex->low, &ey->upp) > 0){
@@ -35,8 +35,8 @@ namespace cuda {
             return -1;
         }
         bool equals = true;
-        int idx = ex->val * RNS_MODULI_SIZE;
-        int idy = ey->val * RNS_MODULI_SIZE;
+        int idx = ex->idx * RNS_MODULI_SIZE;
+        int idy = ey->idx * RNS_MODULI_SIZE;
         for(int i = 0; i < RNS_MODULI_SIZE; i++){
             if(array[idx + i] != array[idy + i]){
                 equals = false;
@@ -54,35 +54,35 @@ namespace cuda {
       * @param N - number of elements in the array
       */
     __global__ void rns_max_eval_kernel(xinterval_t *out, int *in, unsigned int N){
-        auto numberIdx =  blockDim.x * blockIdx.x + threadIdx.x;
-        while (numberIdx < N){
-            cuda::rns_eval_compute(&out[numberIdx].low, &out[numberIdx].upp, &in[numberIdx * RNS_MODULI_SIZE]);
-            out[numberIdx].val = numberIdx;
-            numberIdx +=  gridDim.x * blockDim.x;
+        auto numIdx =  blockDim.x * blockIdx.x + threadIdx.x;
+        while (numIdx < N){
+            cuda::rns_eval_compute(&out[numIdx].low, &out[numIdx].upp, &in[numIdx * RNS_MODULI_SIZE]);
+            out[numIdx].idx = numIdx;
+            numIdx +=  gridDim.x * blockDim.x;
         }
     }
 
     /*!
      * Kernel that builds a reduction tree to compute the maximum element of an array of RNS numbers. Each thread block
-     * finds the maximum element in its chunk of the input array. In general, instead of the array of RNS numbers (in_num),
-     * the array of interval evaluations (in_eval) is used, so that in_num is accessed only in ambiguous cases.
+     * finds the maximum element in its chunk of the input array. In general, instead of the array of RNS numbers,
+     * the array of interval evaluations is used, so that the RNS array is accessed only in ambiguous cases.
      * This kernel requires blockDim.x * sizeof(xinterval_t) of shared memory
-     * @param out - pointer to the interval evaluations of the maximum element in the array of RNS numbers for each thread block. The result
-     * of ith block is stored in out[i].
-     * @param in_eval - pointer to the input array of interval evaluations
-     * @param in_num - pointer to the input array of RNS numbers, size at least N * RNS_MODULI_SIZE
+     * @param out - pointer to the interval evaluations of the maximum element in the array of RNS numbers for each thread block.
+     * The result of ith block is stored in out[i].
+     * @param in - pointer to the input array of interval evaluations
+     * @param rns_arr - pointer to the input array of RNS numbers, size at least N * RNS_MODULI_SIZE
      * @param N - number of elements in the array
      */
-    __global__ void rns_max_tree_kernel(xinterval_t *out, xinterval_t *in_eval, int *in_num, unsigned int N){
-        auto numberIdx =  blockDim.x * blockIdx.x + threadIdx.x;
-        extern __shared__ xinterval_t sh_eval[];
-        sh_eval[threadIdx.x].val = -1;
+    __global__ void rns_max_tree_kernel(xinterval_t *out, xinterval_t *in, int *rns_arr, unsigned int N){
+        auto numIdx =  blockDim.x * blockIdx.x + threadIdx.x;
+        extern __shared__ xinterval_t shared[];
+        shared[threadIdx.x].idx = -1;
         // reduce multiple elements per thread
-        while (numberIdx < N){
-            if(cuda::rns_max_cmp(&in_eval[numberIdx], &sh_eval[threadIdx.x], in_num) == 1){
-                sh_eval[threadIdx.x] = in_eval[numberIdx];
+        while (numIdx < N){
+            if(cuda::rns_max_cmp(&in[numIdx], &shared[threadIdx.x], rns_arr) == 1){
+                shared[threadIdx.x] = in[numIdx];
             }
-            numberIdx +=  gridDim.x * blockDim.x;
+            numIdx +=  gridDim.x * blockDim.x;
         }
         __syncthreads();
         // do reduction in shared mem
@@ -90,23 +90,23 @@ namespace cuda {
         while(i >= 1) {
             if ((threadIdx.x < i)
             && (threadIdx.x + i < blockDim.x)
-            && cuda::rns_max_cmp(&sh_eval[threadIdx.x + i], &sh_eval[threadIdx.x], in_num) == 1) {
-                sh_eval[threadIdx.x] = sh_eval[threadIdx.x + i];
+            && cuda::rns_max_cmp(&shared[threadIdx.x + i], &shared[threadIdx.x], rns_arr) == 1) {
+                shared[threadIdx.x] = shared[threadIdx.x + i];
             }
             i = i >> 1;
             __syncthreads();
         }
         //Writing the index of the maximum element for this block to global memory
-        if (threadIdx.x == 0) out[blockIdx.x] = sh_eval[threadIdx.x];
+        if (threadIdx.x == 0) out[blockIdx.x] = shared[threadIdx.x];
     }
 
     /*
      * Kernel that assigns the value of an RNS number from the 'in' array to out.
-     * The index of the element in the array is computed as eval.val.
+     * The index of the element in the array is computed as eval.idx.
      * This kernel should be run with one thread block of RNS_MODULI_SIZE threads
      */
     __global__ void rns_max_set_kernel(int *out, int *in, xinterval_t *eval){
-        int idx = eval[0].val * RNS_MODULI_SIZE + threadIdx.x;
+        int idx = eval[0].idx * RNS_MODULI_SIZE + threadIdx.x;
         out[threadIdx.x] = in[idx];
     }
 
@@ -129,7 +129,7 @@ namespace cuda {
     template <int gridDim1, int blockDim1, int gridDim2, int blockDim2>
     void rns_max(int *out, int *in, unsigned int N, xinterval_t *buffer) {
         size_t memSize = blockDim2 * sizeof(xinterval_t);
-        cuda::rns_max_eval_kernel <<< gridDim1, blockDim1 >>> ( buffer, in, N);
+        cuda::rns_max_eval_kernel <<< gridDim1, blockDim1 >>> (buffer, in, N);
         cuda::rns_max_tree_kernel <<< gridDim2, blockDim2, memSize >>> (buffer, buffer, in, N);
         cuda::rns_max_tree_kernel <<< 1, blockDim2, memSize >>> (buffer, buffer, in, gridDim2);
         cuda::rns_max_set_kernel <<< 1, RNS_MODULI_SIZE >>> (out, in, buffer);
