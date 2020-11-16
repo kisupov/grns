@@ -75,11 +75,10 @@ void rns_max_mrc(int *out, int *in, unsigned int N, mrd_t *buffer) {
     int gridDim1 = 128;
     int blockDim1 = 64;
     int gridDim2 = 256;
-    int blockDim2 = 128; //32 or 64 for 64-bit moduli
+    int blockDim2 = 128; //64 - for 128 moduli, 32 for 256 moduli
 
     size_t memSize = blockDim2 * sizeof(mrd_t);
     rns_max_mrc_compute_kernel <<< gridDim1, blockDim1 >>> ( buffer, in, N);
-    //rns_max_mrc_compute_kernel <<< 4096, 64 >>> ( buffer, in, N);
     rns_max_mrc_tree_kernel <<< gridDim2, blockDim2, memSize >>> (buffer, buffer, N);
     rns_max_mrc_tree_kernel <<< 1, blockDim2, memSize >>> (buffer, buffer, gridDim2);
     rns_max_mrc_set_kernel <<< 1, RNS_MODULI_SIZE >>> (out, in, buffer);
@@ -180,10 +179,12 @@ void run_test(size_t array_size){
         mpz_init(hx[i]);
     }
     //Generate inputs
-    fill_random_array(hx, array_size, BND_RNS_MODULI_PRODUCT, false);
-    //Convert to the RNS
-    for(int i = 0; i < array_size; i++){
-        rns_from_binary(&hrx[i*RNS_MODULI_SIZE], hx[i]);
+    fill_random_array(hrx, array_size);
+    for(auto i = 0; i < ARRAY_SIZE; i++){
+        for(auto j = 0; j < RNS_MODULI_SIZE; j++){
+            hrx[i * RNS_MODULI_SIZE + j] = hrx[i * RNS_MODULI_SIZE + j] % RNS_MODULI[j];
+        }
+        rns_to_binary(hx[i], &hrx[i * RNS_MODULI_SIZE]);
     }
     // Copying to the GPU
     cudaMemcpy(drx, hrx, memsize, cudaMemcpyHostToDevice);

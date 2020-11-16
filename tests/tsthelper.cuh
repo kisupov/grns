@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <random>
+#include <random>
 #include <chrono>
 #include "mpfr.h"
 #include "../src/params.h"
@@ -100,6 +101,20 @@ void fill_random_array(mpz_t *array, size_t n, RandomBoundType boundType, bool a
     gmp_randclear(state);
     mpz_clear(rndBnd);
     mpz_clear(temp);
+}
+
+/*
+ * Filling an array of integers with random numbers
+ * @param array - pointer to the array of RNS numbers (preliminary memory allocation is required)
+ * @param n - size of array to be filled
+ */
+void fill_random_array(int *array, size_t n) {
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    std::uniform_int_distribution<int> dist(0);
+    for(auto i = 0; i < n; i++){
+        array[i] = dist(mt);
+    }
 }
 
 #endif //GRNS_TEST_TSTHELPER_CUH
