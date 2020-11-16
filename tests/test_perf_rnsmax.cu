@@ -10,13 +10,87 @@
 #include "timers.cuh"
 
 #define ARRAY_SIZE 1000000
-#define RNS_MAX_NUM_BLOCKS_1 4096
-#define RNS_MAX_BLOCK_SIZE_1 64
-#define RNS_MAX_NUM_BLOCKS_2 1024
-#define RNS_MAX_BLOCK_SIZE_2 64
 
 /*
- *  Calculation of the maximum element of an array of RNS numbers using mixed-radix conversion
+ *  Naive calculation of the maximum element of an RNS number using interval evaluations.
+ *  The interval evaluation is computed each time a comparison is made.
+ */
+
+__global__ void rns_max_naive_kernel(int *out, int *in, unsigned int N){
+    auto numberIdx =  blockDim.x * blockIdx.x + threadIdx.x;
+    auto sharedIdx = threadIdx.x * RNS_MODULI_SIZE;
+    extern __shared__ int shared_rns[];
+    memset(&shared_rns[sharedIdx], 0, RNS_MODULI_SIZE * sizeof(int));
+    while (numberIdx < N){
+        if(cuda::rns_cmp(&in[numberIdx * RNS_MODULI_SIZE], &shared_rns[sharedIdx]) == 1){
+            memcpy(&shared_rns[sharedIdx], &in[numberIdx * RNS_MODULI_SIZE], RNS_MODULI_SIZE * sizeof(int));
+        }
+        numberIdx +=  gridDim.x * blockDim.x;
+    }
+    __syncthreads();
+    auto i = cuda::NEXT_POW2(blockDim.x) >> 1;
+    while(i >= 1) {
+        if ((threadIdx.x < i) && (threadIdx.x + i < blockDim.x) && cuda::rns_cmp(&shared_rns[(threadIdx.x + i) * RNS_MODULI_SIZE], &shared_rns[sharedIdx]) == 1) {
+            memcpy(&shared_rns[sharedIdx], &shared_rns[(threadIdx.x + i) * RNS_MODULI_SIZE], RNS_MODULI_SIZE * sizeof(int));
+        }
+        i = i >> 1;
+        __syncthreads();
+    }
+    if (threadIdx.x == 0) {
+        memcpy(&out[blockIdx.x * RNS_MODULI_SIZE], &shared_rns[sharedIdx], RNS_MODULI_SIZE * sizeof(int));
+    }
+}
+
+template <int gridSize, int blockSize>
+void rns_max_naive(int *out, int *in, unsigned int N, int * buffer) {
+    size_t memSize = blockSize * sizeof(int) * RNS_MODULI_SIZE;
+    rns_max_naive_kernel <<< gridSize, blockSize, memSize >>> (buffer, in, N);
+    rns_max_naive_kernel <<< 1, blockSize, memSize >>> (out, buffer, gridSize);
+    checkDeviceHasErrors(cudaDeviceSynchronize());
+    cudaCheckErrors();
+}
+
+/*
+ *  Naive calculation of the maximum element of an RNS number using mixed-radix conversion.
+ *  The mixed-radix representation is computed each time a comparison is made.
+ */
+
+__global__ void rns_max_mrc_naive_kernel(int *out, int *in, unsigned int N){
+    auto numberIdx =  blockDim.x * blockIdx.x + threadIdx.x;
+    auto sharedIdx = threadIdx.x * RNS_MODULI_SIZE;
+    extern __shared__ int sdatamrc[];
+    memset(&sdatamrc[sharedIdx], 0, RNS_MODULI_SIZE * sizeof(int));
+    while (numberIdx < N){
+        if(cuda::mrc_compare_rns(&in[numberIdx * RNS_MODULI_SIZE], &sdatamrc[sharedIdx]) == 1){
+            memcpy(&sdatamrc[sharedIdx], &in[numberIdx * RNS_MODULI_SIZE], RNS_MODULI_SIZE * sizeof(int));
+        }
+        numberIdx +=  gridDim.x * blockDim.x;
+    }
+    __syncthreads();
+    auto i = cuda::NEXT_POW2(blockDim.x) >> 1;
+    while(i >= 1) {
+        if ((threadIdx.x < i) && (threadIdx.x + i < blockDim.x) && cuda::mrc_compare_rns(&sdatamrc[(threadIdx.x + i) * RNS_MODULI_SIZE], &sdatamrc[sharedIdx]) == 1) {
+            memcpy(&sdatamrc[sharedIdx], &sdatamrc[(threadIdx.x + i) * RNS_MODULI_SIZE], RNS_MODULI_SIZE * sizeof(int));
+        }
+        i = i >> 1;
+        __syncthreads();
+    }
+    if (threadIdx.x == 0) {
+        memcpy(&out[blockIdx.x * RNS_MODULI_SIZE], &sdatamrc[sharedIdx], RNS_MODULI_SIZE * sizeof(int));
+    }
+}
+
+template <int gridSize, int blockSize>
+void rns_max_mrc_naive(int *out, int *in, unsigned int N, int * buffer) {
+    size_t memSize = blockSize * sizeof(int) * RNS_MODULI_SIZE;
+    rns_max_mrc_naive_kernel <<< gridSize, blockSize, memSize >>> (buffer, in, N);
+    rns_max_mrc_naive_kernel <<< 1, blockSize, memSize >>> (out, buffer, gridSize);
+    checkDeviceHasErrors(cudaDeviceSynchronize());
+    cudaCheckErrors();
+}
+
+/*
+ *  Calculation of the maximum element of an array of RNS numbers using mixed-radix conversion as described in rnsmax.cuh
  */
 
 typedef struct {
@@ -45,24 +119,24 @@ __global__ void rns_max_mrc_compute_kernel(mrd_t *out, int *in, unsigned int N){
 
 __global__ void rns_max_mrc_tree_kernel(mrd_t *out, mrd_t *in, unsigned int N){
     auto numberIdx =  blockDim.x * blockIdx.x + threadIdx.x;
-    extern __shared__ mrd_t shared[];
-    shared[threadIdx.x].idx = -1;
+    extern __shared__ mrd_t shared_mrc[];
+    shared_mrc[threadIdx.x].idx = -1;
     while (numberIdx < N){
-        if(rns_max_cmp_mrc(&in[numberIdx], &shared[threadIdx.x]) == 1){
-            shared[threadIdx.x] = in[numberIdx];
+        if(rns_max_cmp_mrc(&in[numberIdx], &shared_mrc[threadIdx.x]) == 1){
+            shared_mrc[threadIdx.x] = in[numberIdx];
         }
         numberIdx +=  gridDim.x * blockDim.x;
     }
     __syncthreads();
     auto i = cuda::NEXT_POW2(blockDim.x) >> 1;
     while(i >= 1) {
-        if ((threadIdx.x < i) && (threadIdx.x + i < blockDim.x) && rns_max_cmp_mrc(&shared[threadIdx.x + i], &shared[threadIdx.x]) == 1) {
-            shared[threadIdx.x] = shared[threadIdx.x + i];
+        if ((threadIdx.x < i) && (threadIdx.x + i < blockDim.x) && rns_max_cmp_mrc(&shared_mrc[threadIdx.x + i], &shared_mrc[threadIdx.x]) == 1) {
+            shared_mrc[threadIdx.x] = shared_mrc[threadIdx.x + i];
         }
         i = i >> 1;
         __syncthreads();
     }
-    if (threadIdx.x == 0) out[blockIdx.x] = shared[threadIdx.x];
+    if (threadIdx.x == 0) out[blockIdx.x] = shared_mrc[threadIdx.x];
 }
 
 __global__ void rns_max_mrc_set_kernel(int *out, int *in, mrd_t *mrd){
@@ -70,17 +144,12 @@ __global__ void rns_max_mrc_set_kernel(int *out, int *in, mrd_t *mrd){
     out[threadIdx.x] = in[idx];
 }
 
+template <int gridSize1, int blockSize1, int gridSize2, int blockSize2>
 void rns_max_mrc(int *out, int *in, unsigned int N, mrd_t *buffer) {
-    //Execution config
-    int gridDim1 = 128;
-    int blockDim1 = 64;
-    int gridDim2 = 256;
-    int blockDim2 = 128; //64 - for 128 moduli, 32 for 256 moduli
-
-    size_t memSize = blockDim2 * sizeof(mrd_t);
-    rns_max_mrc_compute_kernel <<< gridDim1, blockDim1 >>> ( buffer, in, N);
-    rns_max_mrc_tree_kernel <<< gridDim2, blockDim2, memSize >>> (buffer, buffer, N);
-    rns_max_mrc_tree_kernel <<< 1, blockDim2, memSize >>> (buffer, buffer, gridDim2);
+    size_t memSize = blockSize2 * sizeof(mrd_t);
+    rns_max_mrc_compute_kernel <<< gridSize1, blockSize1 >>> ( buffer, in, N);
+    rns_max_mrc_tree_kernel <<< gridSize2, blockSize2, memSize >>> (buffer, buffer, N);
+    rns_max_mrc_tree_kernel <<< 1, blockSize2, memSize >>> (buffer, buffer, gridSize2);
     rns_max_mrc_set_kernel <<< 1, RNS_MODULI_SIZE >>> (out, in, buffer);
     checkDeviceHasErrors(cudaDeviceSynchronize());
     cudaCheckErrors();
@@ -103,20 +172,101 @@ void test_rns_max(int * drx, int array_size) {
     Logger::printDash();
     InitCudaTimer();
     PrintTimerName("[CUDA] rns_max");
+
+    //Execution config
+    const int gridSize1 = 4096;
+    const int blockSize1 = 64;
+    const int gridSize2 = 1024;
+    const int blockSize2 = 64;
+    printf("(exec. config: gridSize1 = %i, blockSize1 = %i, gridSize2 = %i, blockSize2 = %i)\n", gridSize1, blockSize1, gridSize2, blockSize2);
+
     //Device data
     int * dresult;
     xinterval_t * dbuf;
     cudaMalloc(&dresult, sizeof(int) * RNS_MODULI_SIZE);
     cudaMalloc(&dbuf, sizeof(xinterval_t) * array_size);
+    printf("memory buffer size (MB): %lf\n", double(sizeof(xinterval_t)) * array_size /  double(1024 * 1024));
     checkDeviceHasErrors(cudaDeviceSynchronize());
     cudaCheckErrors();
     //Launch
     StartCudaTimer();
-    cuda::rns_max<
-            RNS_MAX_NUM_BLOCKS_1,
-            RNS_MAX_BLOCK_SIZE_1,
-            RNS_MAX_NUM_BLOCKS_2,
-            RNS_MAX_BLOCK_SIZE_2>(dresult, drx, array_size, dbuf);
+    cuda::rns_max<gridSize1, blockSize1, gridSize2, blockSize2>(dresult, drx, array_size, dbuf);
+    EndCudaTimer();
+    PrintCudaTimer("took");
+    checkDeviceHasErrors(cudaDeviceSynchronize());
+    cudaCheckErrors();
+    //Copying to the host and verify
+    int hresult[RNS_MODULI_SIZE];
+    cudaMemcpy(hresult, dresult, sizeof(int) * RNS_MODULI_SIZE, cudaMemcpyDeviceToHost);
+    printResult(hresult);
+    Logger::printSpace();
+    checkDeviceHasErrors(cudaDeviceSynchronize());
+    cudaCheckErrors();
+    //Cleanup
+    cudaFree(dresult);
+    cudaFree(dbuf);
+}
+
+//Test of the naive interval implementation
+void test_rns_max_naive(int * drx, int array_size) {
+    Logger::printDash();
+    InitCudaTimer();
+    PrintTimerName("[CUDA] rns_max_naive");
+
+    //Execution config
+    const int gridSize = 256;
+    const int blockSize = 32;
+    printf("(exec. config: gridSize = %i, blockSize = %i)\n", gridSize, blockSize);
+
+    //Device data
+    int * dresult;
+    int * dbuf;
+    cudaMalloc(&dresult, sizeof(int) * RNS_MODULI_SIZE);
+    cudaMalloc(&dbuf, sizeof(int) * gridSize);
+    printf("memory buffer size (MB): %lf\n", double(sizeof(int)) * gridSize /  double(1024 * 1024));
+    checkDeviceHasErrors(cudaDeviceSynchronize());
+    cudaCheckErrors();
+    //Launch
+    StartCudaTimer();
+    rns_max_naive<gridSize, blockSize>(dresult, drx, array_size, dbuf);
+    EndCudaTimer();
+    PrintCudaTimer("took");
+    checkDeviceHasErrors(cudaDeviceSynchronize());
+    cudaCheckErrors();
+    //Copying to the host and verify
+    int hresult[RNS_MODULI_SIZE];
+    cudaMemcpy(hresult, dresult, sizeof(int) * RNS_MODULI_SIZE, cudaMemcpyDeviceToHost);
+    printResult(hresult);
+    Logger::printSpace();
+    checkDeviceHasErrors(cudaDeviceSynchronize());
+    cudaCheckErrors();
+    //Cleanup
+    cudaFree(dresult);
+    cudaFree(dbuf);
+}
+
+//Test of the naive mrc implementation
+void test_rns_max_mrc_naive(int * drx, int array_size) {
+    Logger::printDash();
+    InitCudaTimer();
+    PrintTimerName("[CUDA] rns_max_mrc_naive");
+
+    //Execution config
+    const int gridSize = 256;
+    const int blockSize = 32;
+    printf("(exec. config: gridSize = %i, blockSize = %i)\n", gridSize, blockSize);
+
+    //Device data
+    int * dresult;
+    int * dbuf;
+    cudaMalloc(&dresult, sizeof(int) * RNS_MODULI_SIZE);
+    cudaMalloc(&dbuf, sizeof(int) * gridSize);
+    printf("memory buffer size (MB): %lf\n", double(sizeof(int)) * gridSize /  double(1024 * 1024));
+    checkDeviceHasErrors(cudaDeviceSynchronize());
+    cudaCheckErrors();
+    //Launch
+    StartCudaTimer();
+    rns_max_mrc_naive<gridSize, blockSize>(dresult, drx, array_size, dbuf);
     EndCudaTimer();
     PrintCudaTimer("took");
     checkDeviceHasErrors(cudaDeviceSynchronize());
@@ -138,16 +288,25 @@ void test_rns_max_mrc(int * drx, int array_size) {
     Logger::printDash();
     InitCudaTimer();
     PrintTimerName("[CUDA] rns_max_mrc");
+
+    //Execution config
+    const int gridSize1 = 128;
+    const int blockSize1 = 64;
+    const int gridSize2 = 256;
+    const int blockSize2 = 128; //64 - for 128 moduli, 32 for 256 moduli, 128 - for other
+    printf("(exec. config: gridSize1 = %i, blockSize1 = %i, gridSize2 = %i, blockSize2 = %i)\n", gridSize1, blockSize1, gridSize2, blockSize2);
+
     //Device data
     int * dresult;
     mrd_t * dbuf;
     cudaMalloc(&dresult, sizeof(int) * RNS_MODULI_SIZE);
     cudaMalloc(&dbuf, sizeof(mrd_t) * array_size);
+    printf("memory buffer size (MB): %lf\n", double(sizeof(mrd_t)) * array_size /  double(1024 * 1024));
     checkDeviceHasErrors(cudaDeviceSynchronize());
     cudaCheckErrors();
     //Launch
     StartCudaTimer();
-    rns_max_mrc(dresult, drx, array_size, dbuf);
+    rns_max_mrc<gridSize1, blockSize1, gridSize2, blockSize2>(dresult, drx, array_size, dbuf);
     EndCudaTimer();
     PrintCudaTimer("took");
     checkDeviceHasErrors(cudaDeviceSynchronize());
@@ -210,6 +369,8 @@ void run_test(size_t array_size){
     //Run CUDA tests
     //---------------------------------------------------------
     test_rns_max(drx, array_size);
+    test_rns_max_naive(drx, array_size);
+    test_rns_max_mrc_naive(drx, array_size);
     test_rns_max_mrc(drx, array_size);
     Logger::printSpace();
     //---------------------------------------------------------
@@ -231,13 +392,7 @@ int main() {
     Logger::printParam("ARRAY_SIZE", ARRAY_SIZE);
     Logger::printParam("RNS_MODULI_SIZE", RNS_MODULI_SIZE);
     Logger::printParam("RNS_MODULI_PRODUCT_LOG2", RNS_MODULI_PRODUCT_LOG2);
-    Logger::printDash();
-    Logger::printParam("RNS_MAX_NUM_BLOCKS_1", RNS_MAX_NUM_BLOCKS_1);
-    Logger::printParam("RNS_MAX_BLOCK_SIZE_1", RNS_MAX_BLOCK_SIZE_1);
-    Logger::printParam("RNS_MAX_NUM_BLOCKS_2", RNS_MAX_NUM_BLOCKS_2);
-    Logger::printParam("RNS_MAX_BLOCK_SIZE_2", RNS_MAX_BLOCK_SIZE_2);
     Logger::endSection(true);
-    Logger::printSpace();
     run_test(ARRAY_SIZE);
     Logger::endTestDescription();
     return 0;

@@ -117,21 +117,21 @@ namespace cuda {
      * The first kernel generates and stores partial reduction results, and the second kernel reduces the partial results into a single total.
      * When looking for the maximum element, we don't really need to write the RNS numbers (partial results) into memory.
      * Instead, we store the interval evaluation and index of the maximum element using the xinterval_t data type
-     * @tparam gridDim1  - number of thread blocks to launch the kernel that calculates interval evaluations
-     * @tparam blockDim1 - number of threads per block to launch the kernel that calculates interval evaluations
-     * @tparam gridDim2 -  number of thread blocks to launch the kernel that perform parallel reduction
-     * @tparam blockDim2 - number of threads per block to launch the kernel that perform parallel reduction
+     * @tparam gridSize1  - number of thread blocks to launch the kernel that calculates interval evaluations
+     * @tparam blockSize1 - number of threads per block to launch the kernel that calculates interval evaluations
+     * @tparam gridSize2 -  number of thread blocks to launch the kernel that perform parallel reduction
+     * @tparam blockSize2 - number of threads per block to launch the kernel that perform parallel reduction
      * @param out - pointer to the maximum RNS number in the global GPU memory, size = RNS_MODULI_SIZE
      * @param in - pointer to the array of RNS numbers of the form [x1,x2,...,xn][x1,x2,...,xn][x1,x2,...,xn]...[x1,x2,...,xn], size at least N * RNS_MODULI_SIZE
      * @param N - number of elements in the array
      * @param buffer - global memory buffer of size at least N
      */
-    template <int gridDim1, int blockDim1, int gridDim2, int blockDim2>
+    template <int gridSize1, int blockSize1, int gridSize2, int blockSize2>
     void rns_max(int *out, int *in, unsigned int N, xinterval_t *buffer) {
-        size_t memSize = blockDim2 * sizeof(xinterval_t);
-        cuda::rns_max_eval_kernel <<< gridDim1, blockDim1 >>> (buffer, in, N);
-        cuda::rns_max_tree_kernel <<< gridDim2, blockDim2, memSize >>> (buffer, buffer, in, N);
-        cuda::rns_max_tree_kernel <<< 1, blockDim2, memSize >>> (buffer, buffer, in, gridDim2);
+        size_t memSize = blockSize2 * sizeof(xinterval_t);
+        cuda::rns_max_eval_kernel <<< gridSize1, blockSize1 >>> (buffer, in, N);
+        cuda::rns_max_tree_kernel <<< gridSize2, blockSize2, memSize >>> (buffer, buffer, in, N);
+        cuda::rns_max_tree_kernel <<< 1, blockSize2, memSize >>> (buffer, buffer, in, gridSize2);
         cuda::rns_max_set_kernel <<< 1, RNS_MODULI_SIZE >>> (out, in, buffer);
         checkDeviceHasErrors(cudaDeviceSynchronize());
         cudaCheckErrors();
