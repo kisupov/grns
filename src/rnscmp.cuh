@@ -18,14 +18,14 @@
  * @param y - pointer to the number in the RNS
  */
 GCC_FORCEINLINE int rns_cmp(int *x, int *y) {
-    interval_t xeval; //Interval evaluation of x
-    interval_t yeval; //Interval evaluation of y
-    rns_eval_compute(&xeval.low, &xeval.upp, x);
-    rns_eval_compute(&yeval.low, &yeval.upp, y);
-    if(er_ucmp(&xeval.low, &yeval.upp) > 0){
+    interval_t ex; //Interval evaluation of x
+    interval_t ey; //Interval evaluation of y
+    rns_eval_compute(&ex.low, &ex.upp, x);
+    rns_eval_compute(&ey.low, &ey.upp, y);
+    if(er_ucmp(&ex.low, &ey.upp) > 0){
         return 1;
     }
-    if(er_ucmp(&yeval.low, &xeval.upp) > 0){
+    if(er_ucmp(&ey.low, &ex.upp) > 0){
         return -1;
     }
     bool equals = true;

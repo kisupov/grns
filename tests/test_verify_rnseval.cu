@@ -157,7 +157,7 @@ int main() {
     delete eval;
     cudaFree(d_number);
     cudaFree(d_eval);
-    delete exact;
+    delete [] exact;
     mpz_clear(binary);
 
     //End logging
