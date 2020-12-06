@@ -9,7 +9,7 @@ GRNS supports the following calculations in the [residue number system](https://
     * general integer division (`/src/rnsdiv.cuh`)
     * power-of-two scaling (`/src/rnsscal.cuh`)
 
-Efficient execution of these operations relies on finite precision floating-point interval evaluations (`/src/rnseval.cuh`). See [this paper](https://dx.doi.org/10.1109/ACCESS.2020.2982365) for further details. Both serial (single-threaded) and parallel (n-threaded) GPU implementations of the above operations are available. 
+    Efficient execution of these operations relies on finite precision floating-point interval evaluations (`/src/rnseval.cuh`). See [this paper](https://dx.doi.org/10.1109/ACCESS.2020.2982365) for further details. Both serial (single-threaded) and parallel (n-threaded) GPU implementations of the above operations are available. 
 
 2. Arithmetic operations over large integers represented in the RNS (`/src/mpint.cuh`). A multiple-precision integer is represented by the sign, the significand in RNS, 
 and the interval evaluation of the significand. Four basic arithmetic operations 
