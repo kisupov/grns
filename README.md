@@ -9,11 +9,9 @@ GRNS supports the following calculations in the [residue number system](https://
     * general integer division (`/src/rnsdiv.cuh`)
     * power-of-two scaling (`/src/rnsscal.cuh`)
 
-To efficiently perform these operations, the interval evaluation of the fractional representation of an RNS number is computed (`/src/rnseval.cuh`). 
-Both serial (single-threaded) and parallel (n-threaded) GPU implementations of the above operations are available. 
-See [this paper](https://dx.doi.org/10.1109/ACCESS.2020.2982365) for further details.
+Efficient execution of these operations relies on finite precision floating-point interval evaluations (`/src/rnseval.cuh`). See [this paper](https://dx.doi.org/10.1109/ACCESS.2020.2982365) for further details. Both serial (single-threaded) and parallel (n-threaded) GPU implementations of the above operations are available. 
 
-2. Arithmetic over large integer represented in the RNS (`/src/mpint.cuh`). A multiple-precision integer is represented by the sign, the significand in RNS, 
+2. Arithmetic operations over large integers represented in the RNS (`/src/mpint.cuh`). A multiple-precision integer is represented by the sign, the significand in RNS, 
 and the interval evaluation of the significand. Four basic arithmetic operations 
 (addition, subtraction, multiplication, and division) are supported for CPU and CUDA. 
 For samples of usage, see `/tests/test_verify_mpint.cu` and `/tests/test_perf_mpint.cu`.
@@ -26,7 +24,7 @@ GRNS is designed for large RNS dynamic ranges, which significantly exceed the us
 (say hundreds and thousands of bits). There are no special restrictions on the moduli sets and 
 the magnitude of numbers in RNS representation. Some predefined moduli sets are located in `/src/params`.
 
-GRNS can be freely used in various software-based RNS applications, e.g. RSA, Diffie-Hellman, and Elliptic curves. 
+The library can be freely used in various software-based RNS applications, e.g. RSA, Diffie-Hellman, and Elliptic curves. 
 Currently, the algorithms implemented in GRNS are used in a multiple-precision GPU accelerated BLAS library; 
 see https://github.com/kisupov/mpres-blas.
 
