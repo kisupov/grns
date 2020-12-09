@@ -32,6 +32,17 @@ At the initialization phase, GRNS relies on two open source libraries.
 These are the GNU Multiple Precision Library (GMP) and the GNU MPFR Library (MPFR).
 For the division benchmark, the CAMPARY library is additionally required.
 
+### Details and notes
+
+1. GRNS is intended for Linux and the GCC compiler. Some manipulations have to be done to run it in Windows.
+
+2. The set of RNS moduli used in defined in `src/params.h`.
+The subdirectory `src/params/` contains some predefined moduli sets that provide different
+dynamic ranges, from relatively small to cryptographic sizes. Using these moduli sets is preferred. Just replace the content of
+`src/params.h` with the content of the file you want to use.
+
+3. When using large moduli (like `1283742825`), make sure your system uses LP64 programming model ('long, pointers are 64-bit').  Fortunately, all modern 64-bit Unix systems use LP64.
+
 ### References
 
 1. K. Isupov, "Using floating-point intervals for non-modular computations in residue number system," IEEE Access, vol. 8, pp. 58603-58619, 2020, doi 10.1109/ACCESS.2020.2982365.
