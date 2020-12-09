@@ -22,7 +22,7 @@ For samples of usage, see `/tests/test_verify_mpint.cu` and `/tests/test_perf_mp
 
 GRNS is designed for large RNS dynamic ranges, which significantly exceed the usual precision of computers 
 (say hundreds and thousands of bits). There are no special restrictions on the moduli sets and 
-the magnitude of numbers in RNS representation. Some predefined moduli sets are located in `/src/params`.
+the magnitude of numbers in RNS representation.
 
 The library can be freely used in various software-based RNS applications, e.g. RSA, Diffie-Hellman, and Elliptic curves. 
 Currently, the algorithms implemented in GRNS are used in a multiple-precision GPU accelerated BLAS library; 
@@ -36,10 +36,7 @@ For the division benchmark, the CAMPARY library is additionally required.
 
 1. GRNS is intended for Linux and the GCC compiler. Some manipulations have to be done to run it in Windows.
 
-2. The set of RNS moduli used in defined in `src/params.h`.
-The subdirectory `src/params/` contains some predefined moduli sets that provide different
-dynamic ranges, from relatively small to cryptographic sizes. Using these moduli sets is preferred. Just replace the content of
-`src/params.h` with the content of the file you want to use.
+2. The set of RNS moduli used in defined in `src/params.h`. You can define any arbitrary set of moduli. Several pre-generated sets of moduli that provide various dynamic ranges, from relatively small to cryptographic sizes, are located in the `src/params/` folder. Just replace the content of `src/params.h` with the content of the file you want to use.
 
 3. When using large moduli (like `1283742825`), make sure your system uses LP64 programming model ('long, pointers are 64-bit').  Fortunately, all modern 64-bit Unix systems use LP64.
 
