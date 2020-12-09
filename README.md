@@ -36,7 +36,7 @@ For the division benchmark, the CAMPARY library is additionally required.
 
 1. GRNS is intended for Linux and the GCC compiler. Some manipulations have to be done to run it in Windows.
 
-2. The set of RNS moduli used in defined in `src/params.h`. You can define any arbitrary set of moduli. Several pre-generated sets of moduli that provide various dynamic ranges, from relatively small to cryptographic sizes, are located in the `src/params/` folder. Just replace the content of `src/params.h` with the content of the file you want to use.
+2. The set of RNS moduli used is defined in `src/params.h`. You can define any arbitrary set of moduli. Several pre-generated sets of moduli that provide various dynamic ranges, from relatively small to cryptographic sizes, are located in the `src/params/` folder. Just replace the content of `src/params.h` with the content of the file you want to use.
 
 3. When using large moduli (like `1283742825`), make sure your system uses LP64 programming model ('long, pointers are 64-bit').  Fortunately, all modern 64-bit Unix systems use LP64.
 
