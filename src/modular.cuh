@@ -235,6 +235,16 @@ GCC_FORCEINLINE void rns_sub(int * result, int * x, int * y){
 namespace cuda {
 
     /*!
+    * Assign the value of an RNS number to another RNS number
+    */
+    DEVICE_CUDA_FORCEINLINE void rns_set(int * result, int * src){
+        #pragma unroll
+        for(int i = 0; i < RNS_MODULI_SIZE; i++){
+            result[i] = src[i];
+        }
+    }
+
+    /*!
      * Multiplication of two RNS numbers.
      */
     DEVICE_CUDA_FORCEINLINE void rns_mul(int * result, int * x, int * y){

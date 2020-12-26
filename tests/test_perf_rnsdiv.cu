@@ -107,6 +107,18 @@ DEVICE_CUDA_FORCEINLINE static void hiasatDivision(int *q, int *r, int *x, int *
  * CUDA tests
  */
 
+__global__ static void testCudaRnsDiv(int * dq, int * dr, int * dx, int * dd, int vectorSize) {
+    for(int i = 0; i < vectorSize; i++){
+        cuda::rns_div(&dq[i * RNS_MODULI_SIZE], &dr[i * RNS_MODULI_SIZE], &dx[i * RNS_MODULI_SIZE], &dd[i * RNS_MODULI_SIZE]);
+    }
+}
+
+__global__ static void testCudaRnsDivFast(int * dq, int * dr, int * dx, int * dd, int vectorSize) {
+    for(int i = 0; i < vectorSize; i++){
+        cuda::rns_div_fast(&dq[i * RNS_MODULI_SIZE], &dr[i * RNS_MODULI_SIZE], &dx[i * RNS_MODULI_SIZE], &dd[i * RNS_MODULI_SIZE]);
+    }
+}
+
 __global__ static void testCudaRnsDivParallel(int * dq, int * dr, int * dx, int * dd, int vectorSize) {
     for(int i = 0; i < vectorSize; i++){
         cuda::rns_div_parallel(&dq[i * RNS_MODULI_SIZE], &dr[i * RNS_MODULI_SIZE], &dx[i * RNS_MODULI_SIZE], &dd[i * RNS_MODULI_SIZE]);
@@ -250,6 +262,42 @@ static void run_test(int iterations) {
     }
     EndCpuTimer();
     PrintCpuTimer("took");
+    checkResult(hq, hr, hrq, hrr, iterations);
+    //---------------------------------------------------------
+    Logger::printDash();
+    PrintTimerName("[CUDA] rns_div");
+    resetResult(hrq, hrr, iterations);
+    resetResultCuda<<<1,1>>>(drq, drr, iterations);
+    checkDeviceHasErrors(cudaDeviceSynchronize());
+    cudaCheckErrors();
+    //Launch
+    StartCudaTimer();
+    testCudaRnsDiv<<<1,1>>>(drq, drr, drx, drd, iterations);
+    EndCudaTimer();
+    PrintCudaTimer("took");
+    //Copying to the host
+    cudaMemcpy(hrq, drq, sizeof(int) * iterations * RNS_MODULI_SIZE, cudaMemcpyDeviceToHost);
+    cudaMemcpy(hrr, drr, sizeof(int) * iterations * RNS_MODULI_SIZE, cudaMemcpyDeviceToHost);
+    checkDeviceHasErrors(cudaDeviceSynchronize());
+    cudaCheckErrors();
+    checkResult(hq, hr, hrq, hrr, iterations);
+    //---------------------------------------------------------
+    Logger::printDash();
+    PrintTimerName("[CUDA] rns_div_fast");
+    resetResult(hrq, hrr, iterations);
+    resetResultCuda<<<1,1>>>(drq, drr, iterations);
+    checkDeviceHasErrors(cudaDeviceSynchronize());
+    cudaCheckErrors();
+    //Launch
+    StartCudaTimer();
+    testCudaRnsDivFast<<<1,1>>>(drq, drr, drx, drd, iterations);
+    EndCudaTimer();
+    PrintCudaTimer("took");
+    //Copying to the host
+    cudaMemcpy(hrq, drq, sizeof(int) * iterations * RNS_MODULI_SIZE, cudaMemcpyDeviceToHost);
+    cudaMemcpy(hrr, drr, sizeof(int) * iterations * RNS_MODULI_SIZE, cudaMemcpyDeviceToHost);
+    checkDeviceHasErrors(cudaDeviceSynchronize());
+    cudaCheckErrors();
     checkResult(hq, hr, hrq, hrr, iterations);
     //---------------------------------------------------------
     Logger::printDash();

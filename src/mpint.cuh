@@ -281,7 +281,7 @@ GCC_FORCEINLINE void mpint_mul(mp_int_ptr result, mp_int_ptr x, mp_int_ptr y) {
 /*!
  * Division of two multiple-precision numbers using Euclidean definition
  * result = x / y
- * For RNS division, the algorithm proposed in IEEE Acceess paper is used
+ * For RNS division, the algorithm proposed in IEEE Access paper is used
  * https://ieeexplore.ieee.org/document/9043511
  */
 GCC_FORCEINLINE void mpint_div(mp_int_ptr result, mp_int_ptr x, mp_int_ptr y) {
@@ -506,7 +506,7 @@ namespace cuda {
     /*!
      * Division of two multiple-precision numbers using Euclidean definition
      * result = x / y
-     * For RNS division, the algorithm proposed in IEEE Acceess paper is used
+     * For RNS division, the algorithm proposed in IEEE Access paper is used
      * https://ieeexplore.ieee.org/document/9043511
      */
     DEVICE_CUDA_FORCEINLINE void mpint_div(mp_int_ptr result, mp_int_ptr x, mp_int_ptr y) {
