@@ -805,8 +805,8 @@ int main() {
     rns_eval_const_print();
     Logger::endSection(true);
     Logger::printSpace();
-    //run_test1(ITERATIONS);
-    run_test2();
+    run_test1(ITERATIONS);
+    //run_test2();
     Logger::endTestDescription();
     return 0;
 }
