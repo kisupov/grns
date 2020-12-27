@@ -12,26 +12,13 @@
 /**
  * Constants that are computed  or copied to the device memory in rnsbase.cuh
  */
-double RNS_MODULI_RECIPROCAL[RNS_MODULI_SIZE]; // Array of 1 / RNS_MODULI[i]
-
 namespace cuda {
     __device__ int RNS_MODULI[RNS_MODULI_SIZE]; // The set of RNS moduli for GPU computing
-    __device__ double RNS_MODULI_RECIPROCAL[RNS_MODULI_SIZE]; //Array of 1 / RNS_MODULI[i] for GPU computing
 }
 
 
 /********************* Integer modulo m operations *********************/
 
-
-/*!
- * Modulo m addition of x and y using the long data type
- * for intermediate result to avoid overflow.
- */
-GCC_FORCEINLINE int mod_add(const int x, const int y, const int m){
-    long r = (long)x + (long)y;
-    r = r % (long)m;
-    return (int) r;
-}
 
 /*!
  * Modulo m addition of x and y using the long data type
@@ -107,19 +94,6 @@ namespace cuda {
     }
 
     /*!
-     * Modulo m addition of x and y using the long data type
-     * for intermediate result to avoid overflow.
-     * In order to speedup computations, the modulo operation is replaced
-     * by multiplication by d = 1 / m.
-    */
-    DEVICE_CUDA_FORCEINLINE int mod_add(const int x, const int y, const int m, const double d){
-        long r = (long)x + (long)y;
-        double quotient = (double) r * d;
-        int i = (int) quotient;
-        return (int) (r - (long) i * (long) m);
-    }
-
-    /*!
      * Modulo m subtraction of x and y using the long data type
      * for intermediate result to avoid overflow.
      * The subtraction result is not adjusted and may be negative
@@ -149,19 +123,6 @@ namespace cuda {
         long r = (long)x * (long)y;
         r = r % (long)m;
         return (int)r;
-    }
-
-    /*!
-     * Modulo m multiplication of x and y using the long data type
-     * for intermediate result to avoid overflow.
-     * In order to speedup computations, the modulo operation is replaced
-     * by multiplication by d = 1 / m.
-    */
-    DEVICE_CUDA_FORCEINLINE int mod_mul(const int x, const int y, const int m, const double d){
-        long r = (long)x * (long)y;
-        double quotient = (double) r * d;
-        int i = (int) quotient;
-        return (int) (r - (long) i * (long) m);
     }
 
 } //end of namespace
@@ -207,7 +168,7 @@ namespace cuda {
  */
 GCC_FORCEINLINE void rns_mul(int * result, int * x, int * y){
     for(int i = 0; i < RNS_MODULI_SIZE; i++){
-        result[i] = mod_mul(x[i], y[i], RNS_MODULI[i], RNS_MODULI_RECIPROCAL[i]);
+        result[i] = mod_mul(x[i], y[i], RNS_MODULI[i], 1.0/RNS_MODULI[i]);
     }
 }
 
@@ -216,7 +177,7 @@ GCC_FORCEINLINE void rns_mul(int * result, int * x, int * y){
  */
 GCC_FORCEINLINE void rns_add(int * result, int * x, int * y){
     for(int i = 0; i < RNS_MODULI_SIZE; i++){
-        result[i] = mod_add(x[i], y[i], RNS_MODULI[i], RNS_MODULI_RECIPROCAL[i]);
+        result[i] = mod_add(x[i], y[i], RNS_MODULI[i], 1.0/RNS_MODULI[i]);
     }
 }
 
@@ -248,9 +209,10 @@ namespace cuda {
      * Multiplication of two RNS numbers.
      */
     DEVICE_CUDA_FORCEINLINE void rns_mul(int * result, int * x, int * y){
+        constexpr int moduli[ RNS_MODULI_SIZE ] = RNS_MODULI_VALUES;
         #pragma unroll
         for(int i = 0; i < RNS_MODULI_SIZE; i++){
-            result[i] = cuda::mod_mul(x[i], y[i], cuda::RNS_MODULI[i], cuda::RNS_MODULI_RECIPROCAL[i]);
+            result[i] = cuda::mod_mul(x[i], y[i], moduli[i]);
         }
     }
 
@@ -258,9 +220,10 @@ namespace cuda {
       * Addition of two RNS numbers.
       */
     DEVICE_CUDA_FORCEINLINE void rns_add(int * result, int * x, int * y){
+        constexpr int moduli[ RNS_MODULI_SIZE ] = RNS_MODULI_VALUES;
         #pragma unroll
         for(int i = 0; i < RNS_MODULI_SIZE; i++){
-            result[i] = cuda::mod_add(x[i], y[i], cuda::RNS_MODULI[i], cuda::RNS_MODULI_RECIPROCAL[i]);
+            result[i] = cuda::mod_add(x[i], y[i], moduli[i]);
         }
     }
 
@@ -268,9 +231,10 @@ namespace cuda {
      * Subtraction of two RNS numbers.
      */
     DEVICE_CUDA_FORCEINLINE void rns_sub(int * result, int * x, int * y){
+        constexpr int moduli[ RNS_MODULI_SIZE ] = RNS_MODULI_VALUES;
         #pragma unroll
         for(int i = 0; i < RNS_MODULI_SIZE; i++){
-            result[i] = cuda::mod_psub(x[i], y[i], cuda::RNS_MODULI[i]);
+            result[i] = cuda::mod_psub(x[i], y[i], moduli[i]);
         }
     }
 

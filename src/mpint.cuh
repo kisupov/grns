@@ -173,7 +173,7 @@ GCC_FORCEINLINE void mpint_add(mp_int_ptr result, mp_int_ptr x, mp_int_ptr y) {
 
     //Addition of the RNS significands
     for (int i = 0; i < RNS_MODULI_SIZE; i++) {
-        int residue = mod_add(alpha * x->digits[i], beta * y->digits[i], RNS_MODULI[i], RNS_MODULI_RECIPROCAL[i]);
+        int residue = mod_add(alpha * x->digits[i], beta * y->digits[i], RNS_MODULI[i], 1.0 / RNS_MODULI[i]);
         result->digits[i] = residue < 0 ? residue + RNS_MODULI[i] : residue;
     }
 
@@ -228,7 +228,7 @@ GCC_FORCEINLINE void mpint_sub(mp_int_ptr result, mp_int_ptr x, mp_int_ptr y) {
 
     //Addition of the RNS significands
     for (int i = 0; i < RNS_MODULI_SIZE; i++) {
-        int residue = mod_add(alpha * x->digits[i], beta * y->digits[i], RNS_MODULI[i], RNS_MODULI_RECIPROCAL[i]);
+        int residue = mod_add(alpha * x->digits[i], beta * y->digits[i], RNS_MODULI[i], 1.0 / RNS_MODULI[i]);
         result->digits[i] = residue < 0 ? residue + RNS_MODULI[i] : residue;
     }
 
@@ -272,7 +272,7 @@ GCC_FORCEINLINE void mpint_mul(mp_int_ptr result, mp_int_ptr x, mp_int_ptr y) {
     er_md_rd(&result->eval[0], &x->eval[0], &y->eval[0], &RNS_EVAL_UNIT.upp);
     er_md_ru(&result->eval[1], &x->eval[1], &y->eval[1], &RNS_EVAL_UNIT.low);
     for(int i = 0; i < RNS_MODULI_SIZE; i ++){
-        result->digits[i] = mod_mul(x->digits[i], y->digits[i], RNS_MODULI[i], RNS_MODULI_RECIPROCAL[i]);
+        result->digits[i] = mod_mul(x->digits[i], y->digits[i], RNS_MODULI[i], 1.0 / RNS_MODULI[i]);
     }
     result->sign = rns_check_zero(result->digits) ? 0 : x->sign ^ y->sign;
     mpint_check_overflow(&result->eval[0], & result->eval[1], "mpint_mul");

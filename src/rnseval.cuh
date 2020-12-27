@@ -332,7 +332,7 @@ namespace cuda{
         __shared__ int shm;
 
         //Computing the products x_i * w_i (mod m_i) and the corresponding fractions (lower and upper)
-        int s = cuda::mod_mul(x[threadIdx.x], cuda::RNS_PART_MODULI_PRODUCT_INVERSE[threadIdx.x], modulus, cuda::RNS_MODULI_RECIPROCAL[threadIdx.x]);
+        int s = cuda::mod_mul(x[threadIdx.x], cuda::RNS_PART_MODULI_PRODUCT_INVERSE[threadIdx.x], modulus);
         //Reduction
         double suml = cuda::block_reduce_sum_rd(__ddiv_rd(s, (double) modulus), RNS_MODULI_SIZE);
         double sumu = cuda::block_reduce_sum_ru(__ddiv_ru(s, (double) modulus), RNS_MODULI_SIZE);
@@ -388,7 +388,7 @@ namespace cuda{
         while (sumu < accuracy_constant) {
             //The improvement is that the refinement factor depends on the value of X
             int k = MAX(-(ceil(log2(sumu))+1), cuda::RNS_EVAL_REF_FACTOR);
-            s = cuda::mod_mul(s, cuda::RNS_POW2[k][threadIdx.x], modulus, cuda::RNS_MODULI_RECIPROCAL[threadIdx.x]);
+            s = cuda::mod_mul(s, cuda::RNS_POW2[k][threadIdx.x], modulus);
             sumu = cuda::block_reduce_sum_ru(__ddiv_ru(s, (double) modulus), RNS_MODULI_SIZE);
             //Broadcast sums among all threads
             if(threadIdx.x == 0) shu = sumu;
