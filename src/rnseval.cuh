@@ -177,7 +177,7 @@ namespace cuda{
      */
     DEVICE_CUDA_FORCEINLINE void rns_eval_compute(er_float_ptr low, er_float_ptr upp, int * x) {
         constexpr double moduli[ RNS_MODULI_SIZE ] = RNS_MODULI_VALUES;
-        double accuracy_constant = cuda::RNS_EVAL_ACCURACY;
+        const double accuracy_constant = cuda::RNS_EVAL_ACCURACY;
         int  s[RNS_MODULI_SIZE];
         double fracl[RNS_MODULI_SIZE];
         double fracu[RNS_MODULI_SIZE];
@@ -262,7 +262,7 @@ namespace cuda{
      */
     DEVICE_CUDA_FORCEINLINE void rns_eval_compute_fast(er_float_ptr low, er_float_ptr upp, int * x) {
         constexpr double moduli[ RNS_MODULI_SIZE ] = RNS_MODULI_VALUES;
-        double accuracy_constant = cuda::RNS_EVAL_ACCURACY;
+        const double accuracy_constant = cuda::RNS_EVAL_ACCURACY;
         int s[RNS_MODULI_SIZE];
         double fracl[RNS_MODULI_SIZE];
         double fracu[RNS_MODULI_SIZE];
