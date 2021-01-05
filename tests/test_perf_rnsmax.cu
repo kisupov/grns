@@ -1,5 +1,6 @@
 /*
  *  Test for measure the performance of finding the maximum element in an array of RNS numbers
+ *  The size of the input array must be given as a command line argument
  */
 
 #include <stdio.h>
@@ -8,8 +9,6 @@
 #include "tsthelper.cuh"
 #include "logger.cuh"
 #include "timers.cuh"
-
-#define ARRAY_SIZE 1000000
 
 /*
  *  Naive calculation of the maximum element of an RNS number using interval evaluations.
@@ -179,13 +178,13 @@ void test_rns_max(int * drx, int array_size) {
     const int gridSize2 = 1024;
     const int blockSize2 = 64;
     printf("(exec. config: gridSize1 = %i, blockSize1 = %i, gridSize2 = %i, blockSize2 = %i)\n", gridSize1, blockSize1, gridSize2, blockSize2);
+    printf("memory buffer size (MB): %lf\n", double(sizeof(xinterval_t)) * array_size /  double(1024 * 1024));
 
     //Device data
     int * dresult;
     xinterval_t * dbuf;
     cudaMalloc(&dresult, sizeof(int) * RNS_MODULI_SIZE);
     cudaMalloc(&dbuf, sizeof(xinterval_t) * array_size);
-    printf("memory buffer size (MB): %lf\n", double(sizeof(xinterval_t)) * array_size /  double(1024 * 1024));
     checkDeviceHasErrors(cudaDeviceSynchronize());
     cudaCheckErrors();
     //Launch
@@ -217,13 +216,13 @@ void test_rns_max_naive(int * drx, int array_size) {
     const int gridSize = 256;
     const int blockSize = 32;
     printf("(exec. config: gridSize = %i, blockSize = %i)\n", gridSize, blockSize);
+    printf("memory buffer size (MB): %lf\n", double(sizeof(int)) * gridSize /  double(1024 * 1024));
 
     //Device data
     int * dresult;
     int * dbuf;
     cudaMalloc(&dresult, sizeof(int) * RNS_MODULI_SIZE);
     cudaMalloc(&dbuf, sizeof(int) * gridSize);
-    printf("memory buffer size (MB): %lf\n", double(sizeof(int)) * gridSize /  double(1024 * 1024));
     checkDeviceHasErrors(cudaDeviceSynchronize());
     cudaCheckErrors();
     //Launch
@@ -295,13 +294,13 @@ void test_rns_max_mrc(int * drx, int array_size) {
     const int gridSize2 = 256;
     const int blockSize2 = 128; //64 - for 128 moduli, 32 for 256 moduli, 128 - for other
     printf("(exec. config: gridSize1 = %i, blockSize1 = %i, gridSize2 = %i, blockSize2 = %i)\n", gridSize1, blockSize1, gridSize2, blockSize2);
+    printf("memory buffer size (MB): %lf\n", double(sizeof(mrd_t)) * array_size /  double(1024 * 1024));
 
     //Device data
     int * dresult;
     mrd_t * dbuf;
     cudaMalloc(&dresult, sizeof(int) * RNS_MODULI_SIZE);
     cudaMalloc(&dbuf, sizeof(mrd_t) * array_size);
-    printf("memory buffer size (MB): %lf\n", double(sizeof(mrd_t)) * array_size /  double(1024 * 1024));
     checkDeviceHasErrors(cudaDeviceSynchronize());
     cudaCheckErrors();
     //Launch
@@ -339,7 +338,7 @@ void run_test(size_t array_size){
     }
     //Generate inputs
     fill_random_array(hrx, array_size);
-    for(auto i = 0; i < ARRAY_SIZE; i++){
+    for(auto i = 0; i < array_size; i++){
         for(auto j = 0; j < RNS_MODULI_SIZE; j++){
             hrx[i * RNS_MODULI_SIZE + j] = hrx[i * RNS_MODULI_SIZE + j] % RNS_MODULI[j];
         }
@@ -385,15 +384,23 @@ void run_test(size_t array_size){
     cudaFree(drx);
 }
 
-int main() {
+int main(int argc, char *argv[]) {
     cudaDeviceReset();
     rns_const_init();
     Logger::beginTestDescription(Logger::TEST_PERF_RNSMAX);
-    Logger::printParam("ARRAY_SIZE", ARRAY_SIZE);
+    if(argc<=1) {
+        printf("Array size is not specified in command line arguments.");
+        Logger::printSpace();
+        Logger::endTestDescription();
+        exit(1);
+    }
+    int array_size = atol(argv[1]);
+    Logger::printParam("ARRAY_SIZE", array_size);
+    Logger::printParam("ARRAY_SIZE (MB)", double(sizeof(int)) * array_size * RNS_MODULI_SIZE /  double(1024 * 1024));
     Logger::printParam("RNS_MODULI_SIZE", RNS_MODULI_SIZE);
     Logger::printParam("RNS_MODULI_PRODUCT_LOG2", RNS_MODULI_PRODUCT_LOG2);
     Logger::endSection(true);
-    run_test(ARRAY_SIZE);
+    run_test(array_size);
     Logger::endTestDescription();
     return 0;
 }
