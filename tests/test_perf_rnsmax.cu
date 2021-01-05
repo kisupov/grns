@@ -177,6 +177,8 @@ void test_rns_max(int * drx, int array_size) {
     const int blockSize1 = 64;
     const int gridSize2 = 1024;
     const int blockSize2 = 64;
+    //For 128 and 256 moduli: gridSize1 = 4096, blockSize1 = 64, gridSize2 = 128, blockSize2 = 32
+
     printf("(exec. config: gridSize1 = %i, blockSize1 = %i, gridSize2 = %i, blockSize2 = %i)\n", gridSize1, blockSize1, gridSize2, blockSize2);
     printf("memory buffer size (MB): %lf\n", double(sizeof(xinterval_t)) * array_size /  double(1024 * 1024));
 
@@ -394,7 +396,7 @@ int main(int argc, char *argv[]) {
         Logger::endTestDescription();
         exit(1);
     }
-    int array_size = atol(argv[1]);
+    int array_size = atoi(argv[1]);
     Logger::printParam("ARRAY_SIZE", array_size);
     Logger::printParam("ARRAY_SIZE (MB)", double(sizeof(int)) * array_size * RNS_MODULI_SIZE /  double(1024 * 1024));
     Logger::printParam("RNS_MODULI_SIZE", RNS_MODULI_SIZE);
