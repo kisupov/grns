@@ -42,9 +42,11 @@ For the division benchmark, the CAMPARY library is additionally required.
 
 ### References
 
-1. K. Isupov, "Using floating-point intervals for non-modular computations in residue number system," IEEE Access, vol. 8, pp. 58603-58619, 2020, doi 10.1109/ACCESS.2020.2982365.
+1. K. Isupov, "Using floating-point intervals for non-modular computations in residue number system," IEEE Access, vol. 8, pp. 58603-58619, 2020, https://doi.org/10.1109/ACCESS.2020.2982365.
+
+2. K. Isupov, "High-performance computation in residue number system using floating-point arithmetic," Computation, vol. 9, no. 2, article no. 9, 2021, https://doi.org/10.3390/computation9020009.
 
 
 *Link: http://github.com/kisupov/grns*
 
-*Copyright 2019, 2020 by Konstantin Isupov.*
+*Copyright 2019, 2020, 2021 by Konstantin Isupov.*
