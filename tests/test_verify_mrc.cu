@@ -62,12 +62,12 @@ static void print_test_result(const char* name, int * mrc_result){
 /*
  * GPU tests
  */
-__global__ void run_serial_mrc(int * dev_number, int * dev_mrc_result) {
-    cuda::perform_mrc(dev_mrc_result, dev_number);
+__global__ void run_mrc_kernel(int * dev_number, int * dev_mrc_result) {
+    cuda::mrc(dev_mrc_result, dev_number);
 }
 
-__global__ void run_parallel_mrc_thread(int * dev_number, int * dev_mrc_result) {
-    cuda::perform_mrc_parallel(dev_mrc_result, dev_number);
+__global__ void run_mrc_pipeline_kernel(int * dev_number, int * dev_mrc_result) {
+    cuda::mrc_pipeline(dev_mrc_result, dev_number);
 }
 
 void make_iteration(int * number) {
@@ -84,7 +84,7 @@ void make_iteration(int * number) {
      * CPU test
      */
     int mrc_result[RNS_MODULI_SIZE];
-    perform_mrc(mrc_result, number);
+    mrc(mrc_result, number);
     print_test_result("[CPU] Szabo-Tanaka MRC:", mrc_result);
     clear_mrs(mrc_result);
 
@@ -99,8 +99,8 @@ void make_iteration(int * number) {
     // Copying the inputs
     cudaMemcpy(dev_number, number, sizeof(int) * RNS_MODULI_SIZE, cudaMemcpyHostToDevice);
 
-    //Call the Szabo-Tanaka kernel
-    run_serial_mrc << < 1, 1 >> > (dev_number, dev_mrc_result);
+    //Call the Szabo-Tanaka serial kernel
+    run_mrc_kernel << < 1, 1 >> > (dev_number, dev_mrc_result);
     cudaDeviceSynchronize();
     // Copying the results back to host
     cudaMemcpy(mrc_result, dev_mrc_result, sizeof(int) * RNS_MODULI_SIZE, cudaMemcpyDeviceToHost);
@@ -109,13 +109,13 @@ void make_iteration(int * number) {
     clear_mrs(mrc_result);
     clear_device_mrs<< < 1, 1 >> > (dev_mrc_result);
 
-    //Call the Gbolagade-Cotofana kernel (thread)
-    run_parallel_mrc_thread<< < 1, RNS_MODULI_SIZE >>> (dev_number, dev_mrc_result);
+    //Call the Szabo-Tanaka pipe kernel
+    run_mrc_pipeline_kernel<< < 1, RNS_MODULI_SIZE >>> (dev_number, dev_mrc_result);
     cudaDeviceSynchronize();
     // Copying the results back to host
     cudaMemcpy(mrc_result, dev_mrc_result, sizeof(int) * RNS_MODULI_SIZE, cudaMemcpyDeviceToHost);
     // Printing the results
-    print_test_result("[CUDA] Gbolagade-Cotofana Thread MRC:", mrc_result);
+    print_test_result("[CUDA] Szabo-Tanaka pipeline MRC:", mrc_result);
     clear_mrs(mrc_result);
     clear_device_mrs<< < 1, 1 >> > (dev_mrc_result);
 

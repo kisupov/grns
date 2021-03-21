@@ -39,9 +39,9 @@ __global__ static void testCudaMrcCmp(int * dr, int * dx, int * dy, int vectorSi
     }
 }
 
-__global__ static void testCudaMrcCmpParallel(int * dr, int * dx, int * dy, int vectorSize) {
+__global__ static void testCudaMrcPipelineCmp(int * dr, int * dx, int * dy, int vectorSize) {
     for(int i = 0; i < vectorSize; i++){
-        int result = cuda::mrc_compare_rns_parallel(&dx[i * RNS_MODULI_SIZE], &dy[i * RNS_MODULI_SIZE]);
+        int result = cuda::mrc_pipeline_compare_rns(&dx[i * RNS_MODULI_SIZE], &dy[i * RNS_MODULI_SIZE]);
         if(threadIdx.x == 0){
             dr[i] = result;
         }
@@ -197,14 +197,14 @@ static void run_test(int iterations) {
     checkResult(ref, hres, iterations);
     //---------------------------------------------------------
     Logger::printDash();
-    PrintTimerName("[CUDA] mrc_compare_rns_parallel");
+    PrintTimerName("[CUDA] mrc_pipeline_compare_rns");
     resetResult(hres, iterations);
     resetResultCuda<<<1,1>>>(dres, iterations);
     checkDeviceHasErrors(cudaDeviceSynchronize());
     cudaCheckErrors();
     //Launch
     StartCudaTimer();
-    testCudaMrcCmpParallel<<<1,RNS_MODULI_SIZE>>>(dres, drx, dry, iterations);
+    testCudaMrcPipelineCmp<<<1,RNS_MODULI_SIZE>>>(dres, drx, dry, iterations);
     EndCudaTimer();
     PrintCudaTimer("took");
     //Copying to the host

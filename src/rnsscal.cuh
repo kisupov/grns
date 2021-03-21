@@ -35,7 +35,7 @@ static int compute_k(int * x, int * c) {
         return k_low;
     } else {
         int mr[RNS_MODULI_SIZE];
-        perform_mrc(mr, x);
+        mrc(mr, x);
         if (mr[RNS_MODULI_SIZE - 1] == 0) {
             return k_upp;
         } else{
@@ -145,7 +145,7 @@ namespace cuda{
         if (k_low == k_upp) {
             return k_low;
         } else {
-            cuda::perform_mrc(mr, x);
+            cuda::mrc(mr, x);
             if (mr[RNS_MODULI_SIZE - 1] == 0) {
                 return k_upp;  //Number is too small
             } else{
@@ -267,7 +267,7 @@ namespace cuda{
         } else {
             if (residueId == 0) {
                 int mr[RNS_MODULI_SIZE];
-                cuda::perform_mrc(mr, x); // parallel MRC should be used, see http://dx.doi.org/10.1109/ISCAS.2009.5117800
+                cuda::mrc(mr, x); // parallel MRC should be used, see http://dx.doi.org/10.1109/ISCAS.2009.5117800
                 if (mr[RNS_MODULI_SIZE - 1] == 0) {
                     *result = k_upp;
                 } else{

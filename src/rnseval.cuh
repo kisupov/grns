@@ -58,7 +58,7 @@ GCC_FORCEINLINE void rns_eval_compute(er_float_ptr low, er_float_ptr upp, int * 
     er_set_d(upp, sumu);
     //Check for ambiguity
     if(whl != whu) {
-        perform_mrc(mrd, x); //Computing the mixed-radix representation of x
+        mrc(mrd, x); //Computing the mixed-radix representation of x
         mr = mrd[RNS_MODULI_SIZE - 1];
     }
     //Adjust if ambiguity was found
@@ -211,7 +211,7 @@ namespace cuda{
         cuda::er_set_d(upp, sumu);
         //Check for ambiguity
         if(whl != whu) {
-            cuda::perform_mrc(mrd, x); //Computing the mixed-radix representation of x
+            cuda::mrc(mrd, x); //Computing the mixed-radix representation of x
             mr = mrd[RNS_MODULI_SIZE - 1];
         }
         //Adjust if ambiguity was found
@@ -368,7 +368,7 @@ namespace cuda{
         }
         //Check for ambiguity
         if(whl != whu) {
-            mr = cuda::get_mrmsd_parallel(x); // The result is stored in mr (only for thread 0)
+            mr = cuda::mrc_pipeline_msd(x); // The result is stored in mr (only for thread 0)
             //Broadcast mr among all threads
             if (threadIdx.x == 0) shm = mr;
             __syncthreads();

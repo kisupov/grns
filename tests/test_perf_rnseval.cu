@@ -54,7 +54,7 @@ GCC_FORCEINLINE void rns_eval_compute_origin(er_float_ptr low, er_float_ptr upp,
     bool tiny = false;
     if (whl != whu) { //Interval evaluation is wrong
         int mr[RNS_MODULI_SIZE];
-        perform_mrc(mr, x); //Computing the mixed-radix representation of x
+        mrc(mr, x); //Computing the mixed-radix representation of x
         if (mr[RNS_MODULI_SIZE - 1] == 0) {
             tiny = true; //Number is too small, the lower bound is incorrect
             er_set(low, &RNS_EVAL_UNIT.low);
@@ -199,7 +199,7 @@ namespace cuda{
         bool tiny = false;
         if (whl != whu) { //Interval evaluation is wrong
             int mr[RNS_MODULI_SIZE];
-            cuda::perform_mrc(mr, x); //Computing the mixed-radix representation of x
+            cuda::mrc(mr, x); //Computing the mixed-radix representation of x
             if (mr[RNS_MODULI_SIZE - 1] == 0) {
                 tiny = true; //Number is too small, the lower bound is incorrect
                 cuda::er_set(low, &cuda::RNS_EVAL_UNIT.low);
@@ -363,7 +363,7 @@ namespace cuda{
         if( control ){ return; }
         //Ambiguity case, perform mixed-radix conversion
         if(ambiguity){
-            mr = cuda::get_mrmsd_parallel(x); // The result is stored in mr (only for thread 0)
+            mr = cuda::mrc_pipeline_msd(x); // The result is stored in mr (only for thread 0)
         }
 
         //Resolve ambiguity and check accuracy

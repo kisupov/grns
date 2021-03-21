@@ -105,7 +105,7 @@ namespace cuda {
             }
         }
         __syncthreads();
-        return equals ? 0 : cuda::mrc_compare_rns_parallel(x, y);
+        return equals ? 0 : cuda::mrc_pipeline_compare_rns(x, y);
     }
 
 }

@@ -28,7 +28,7 @@ GCC_FORCEINLINE static int mrs_cmp(int * x, int * y) {
  * @param mr - pointer to the result mixed-radix representation
  * @param x - pointer to the input RNS number
  */
-GCC_FORCEINLINE void perform_mrc(int * mr, int * x) {
+GCC_FORCEINLINE void mrc(int * mr, int * x) {
     for (int i = 0; i < RNS_MODULI_SIZE; i++) {
         mr[i] = x[i];
         for (int j = 0; j < i; j++) {
@@ -66,8 +66,8 @@ void mrs_to_binary(mpz_t target, int * x) {
 int mrc_compare_rns(int * x, int * y) {
     int mx[RNS_MODULI_SIZE];
     int my[RNS_MODULI_SIZE];
-    perform_mrc(mx, x);
-    perform_mrc(my, y);
+    mrc(mx, x);
+    mrc(my, y);
     return mrs_cmp(mx, my);
 }
 
@@ -98,7 +98,7 @@ namespace cuda{
      * @param mr - pointer to the result mixed-radix representation
      * @param x - pointer to the input RNS number
      */
-    DEVICE_CUDA_FORCEINLINE void perform_mrc(int * mr, int * x) {
+    DEVICE_CUDA_FORCEINLINE void mrc(int * mr, int * x) {
         for (int i = 0; i < RNS_MODULI_SIZE; i++) {
             mr[i] = x[i];
             for (int j = 0; j < i; j++) {
@@ -113,27 +113,25 @@ namespace cuda{
     }
 
     /*!
-     * Parallel computation of the mixed-radix representation of an RNS number using the Gbolagade and Cotofana's MRC
+     * Parallel (pipeline) computation of the mixed-radix representation of an RNS number
      * This routine must be executed by RNS_MODULI_SIZE threads concurrently.
-     * For details, see K. A. Gbolagade and S. D. Cotofana, An O(n) residue number system to mixed radix conversion technique,
-     * Proc. IEEE Int. Symp. Circuits and Systems (ISCAS'2009), Taipei, Taiwan (2009), pp. 521–524.
      * @param mr - pointer to the result mixed-radix representation
      * @param x - pointer to the input RNS number
      */
-    DEVICE_CUDA_FORCEINLINE void perform_mrc_parallel(int * mr, int * x){
-        __shared__ int temp[RNS_MODULI_SIZE];
-        int tid = threadIdx.x;
-        int modulus = cuda::RNS_MODULI[tid];
-        temp[tid] = x[tid];
+    DEVICE_CUDA_FORCEINLINE void mrc_pipeline(int * mr, int * x){
+        __shared__ int v[RNS_MODULI_SIZE];
+        int k = threadIdx.x;
+        int m = cuda::RNS_MODULI[k];
+        v[k] = x[k];
         __syncthreads();
-        for (int i = 0; i < RNS_MODULI_SIZE - 1; i++) {
-            if(tid > i){
-                int sum = mod_psub(temp[tid], temp[i], modulus);
-                temp[tid] = mod_mul(sum, cuda::MRC_MULT_INV[i][tid], modulus);
+        for (int j = 0; j < RNS_MODULI_SIZE - 1; j++) {
+            if(k > j){
+                int sum = mod_psub(v[k], v[j], m);
+                v[k] = mod_mul(sum, cuda::MRC_MULT_INV[j][k], m);
             }
             __syncthreads();
         }
-        mr[tid] = temp[tid];
+        mr[k] = v[k];
     }
 
     /*!
@@ -141,20 +139,20 @@ namespace cuda{
      * @param msd - pointer to the result most significant mixed-radix digit (singular)
      * @param x - pointer to the input RNS number
      */
-    DEVICE_CUDA_FORCEINLINE int get_mrmsd_parallel(int * x){
-        __shared__ int temp[RNS_MODULI_SIZE];
-        int tid = threadIdx.x;
-        int modulus = cuda::RNS_MODULI[tid];
-        temp[tid] = x[tid];
+    DEVICE_CUDA_FORCEINLINE int mrc_pipeline_msd(int * x){
+        __shared__ int v[RNS_MODULI_SIZE];
+        int k = threadIdx.x;
+        int m = cuda::RNS_MODULI[k];
+        v[k] = x[k];
         __syncthreads();
-        for (int i = 0; i < RNS_MODULI_SIZE - 1; i++) {
-            if(tid > i){
-                int sum = mod_psub(temp[tid], temp[i], modulus);
-                temp[tid] = mod_mul(sum, cuda::MRC_MULT_INV[i][tid], modulus);
+        for (int j = 0; j < RNS_MODULI_SIZE - 1; j++) {
+            if(k > j){
+                int sum = mod_psub(v[k], v[j], m);
+                v[k] = mod_mul(sum, cuda::MRC_MULT_INV[j][k], m);
             }
             __syncthreads();
         }
-        return (tid == 0) * temp[RNS_MODULI_SIZE - 1]; // Only thread 0 returns non-zero result
+        return (k == 0) * v[RNS_MODULI_SIZE - 1]; // Only thread 0 returns non-zero result
     }
 
     /*!
@@ -164,8 +162,8 @@ namespace cuda{
     DEVICE_CUDA_FORCEINLINE int mrc_compare_rns(int * x, int * y) {
         int mx[RNS_MODULI_SIZE];
         int my[RNS_MODULI_SIZE];
-        cuda::perform_mrc(mx, x);
-        cuda::perform_mrc(my, y);
+        cuda::mrc(mx, x);
+        cuda::mrc(my, y);
         return cuda::mrs_cmp(mx, my);
     }
 
@@ -175,11 +173,11 @@ namespace cuda{
      * Note that all threads returns the same comparison result
      * @return 1, if x > y; -1, if x < y; 0, if x = y
      */
-    DEVICE_CUDA_FORCEINLINE int mrc_compare_rns_parallel(int * x, int * y) {
+    DEVICE_CUDA_FORCEINLINE int mrc_pipeline_compare_rns(int * x, int * y) {
         __shared__ int mx[RNS_MODULI_SIZE];
         __shared__ int my[RNS_MODULI_SIZE];
-        cuda::perform_mrc_parallel(mx, x);
-        cuda::perform_mrc_parallel(my, y);
+        cuda::mrc_pipeline(mx, x);
+        cuda::mrc_pipeline(my, y);
         __syncthreads();
         return cuda::mrs_cmp(mx, my);
     }

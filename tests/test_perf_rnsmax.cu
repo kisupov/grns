@@ -110,7 +110,7 @@ DEVICE_CUDA_FORCEINLINE int rns_max_cmp_mrc(mrd_t *mrx, mrd_t *mry) {
 __global__ void rns_max_mrc_compute_kernel(mrd_t *out, int *in, unsigned int N){
     auto numberIdx =  blockDim.x * blockIdx.x + threadIdx.x;
     while (numberIdx < N){
-        cuda::perform_mrc(out[numberIdx].digits, &in[numberIdx * RNS_MODULI_SIZE]);
+        cuda::mrc(out[numberIdx].digits, &in[numberIdx * RNS_MODULI_SIZE]);
         out[numberIdx].idx = numberIdx;
         numberIdx +=  gridDim.x * blockDim.x;
     }

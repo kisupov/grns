@@ -43,8 +43,8 @@ GCC_FORCEINLINE void rns_div(int *q, int *r, int *x, int *d) {
     if (er_ucmp(&reval.upp, &deval.low) >= 0) { //Ambiguity, use MRC
         int dmr[RNS_MODULI_SIZE]; //for mixed-radix representation of d
         bool rged = true; // r \ge d
-        perform_mrc(dmr, d);
-        perform_mrc(pq, r);
+        mrc(dmr, d);
+        mrc(pq, r);
         for (int i = RNS_MODULI_SIZE - 1; i >= 0; i--) {
             if (pq[i] < dmr[i]) {
                 rged = false; //r < d, no adjustment required
@@ -96,8 +96,8 @@ GCC_FORCEINLINE void rns_div_fast(int *q, int *r, int *x, int *d) {
     if (er_ucmp(&reval.upp, &deval.low) >= 0) { //Ambiguity, use MRC
         int dmr[RNS_MODULI_SIZE]; //for mixed-radix representation of d
         bool rged = true; // r \ge d
-        perform_mrc(dmr, d);
-        perform_mrc(pq, r);
+        mrc(dmr, d);
+        mrc(pq, r);
         for (int i = RNS_MODULI_SIZE - 1; i >= 0; i--) {
             if (pq[i] < dmr[i]) {
                 rged = false; //r < d, no adjustment required
@@ -154,8 +154,8 @@ namespace cuda {
         if (cuda::er_ucmp(&reval.upp, &deval.low) >= 0) { //Ambiguity, use MRC
             int dmr[RNS_MODULI_SIZE]; //for mixed-radix representation of d
             bool rged = true; // r \ge d
-            cuda::perform_mrc(dmr, d);
-            cuda::perform_mrc(pq, r);
+            cuda::mrc(dmr, d);
+            cuda::mrc(pq, r);
             for (int i = RNS_MODULI_SIZE - 1; i >= 0; i--) {
                 if (pq[i] < dmr[i]) {
                     rged = false; //r < d, no adjustment required
@@ -213,8 +213,8 @@ namespace cuda {
         if (cuda::er_ucmp(&reval.upp, &deval.low) >= 0) { //Ambiguity, use MRC
             int dmr[RNS_MODULI_SIZE]; //for mixed-radix representation of d
             bool rged = true; // r \ge d
-            cuda::perform_mrc(dmr, d);
-            cuda::perform_mrc(pq, r);
+            cuda::mrc(dmr, d);
+            cuda::mrc(pq, r);
             for (int i = RNS_MODULI_SIZE - 1; i >= 0; i--) {
                 if (pq[i] < dmr[i]) {
                     rged = false; //r < d, no adjustment required
@@ -273,8 +273,8 @@ namespace cuda {
         }
         //Final adjustment
         if (cuda::er_ucmp(&reval.upp, &deval.low) >= 0) { //Ambiguity, use MRC
-            cuda::perform_mrc_parallel(dmr, d);
-            cuda::perform_mrc_parallel(rmr, r);
+            cuda::mrc_pipeline(dmr, d);
+            cuda::mrc_pipeline(rmr, r);
             if (threadIdx.x == 0) {
                 rged = true;
                 for (int i = RNS_MODULI_SIZE - 1; i >= 0; i--) {
@@ -335,8 +335,8 @@ namespace cuda {
         }
         //Final adjustment
         if (cuda::er_ucmp(&reval.upp, &deval.low) >= 0) { //Ambiguity, use MRC
-            cuda::perform_mrc_parallel(dmr, d);
-            cuda::perform_mrc_parallel(rmr, r);
+            cuda::mrc_pipeline(dmr, d);
+            cuda::mrc_pipeline(rmr, r);
             if (threadIdx.x == 0) {
                 rged = true;
                 for (int i = RNS_MODULI_SIZE - 1; i >= 0; i--) {
