@@ -176,7 +176,6 @@ namespace cuda{
      * @param x - pointer to the input RNS number
      */
     DEVICE_CUDA_FORCEINLINE void rns_eval_compute(er_float_ptr low, er_float_ptr upp, int * x) {
-        constexpr double moduli[ RNS_MODULI_SIZE ] = RNS_MODULI_VALUES;
         const double accuracy_constant = cuda::RNS_EVAL_ACCURACY;
         int  s[RNS_MODULI_SIZE];
         double fracl[RNS_MODULI_SIZE];
@@ -189,8 +188,8 @@ namespace cuda{
         //1.0 / moduli[i] is evaluated at compile time
         cuda::rns_mul(s, x, cuda::RNS_PART_MODULI_PRODUCT_INVERSE);
         for (int i = 0; i < RNS_MODULI_SIZE; i++) {
-            fracl[i] = __dmul_rd(s[i], 1.0 / moduli[i]);
-            fracu[i] = __dmul_ru(s[i], 1.0 / moduli[i]);
+            fracl[i] = __dmul_rd(s[i], cuda::RNS_MODULI_RECIP_RD[i]);
+            fracu[i] = __dmul_ru(s[i], cuda::RNS_MODULI_RECIP_RU[i]);
         }
         //Pairwise summation of the fractions
         suml = cuda::psum_rd<RNS_MODULI_SIZE>(fracl);
@@ -233,7 +232,7 @@ namespace cuda{
             int k = MAX(-(ceil(log2(sumu))+1), cuda::RNS_EVAL_REF_FACTOR);
             cuda::rns_mul(s, s, cuda::RNS_POW2[k]);
             for(int i = 0; i < RNS_MODULI_SIZE; i++) {
-                fracu[i] = __dmul_ru(s[i], 1.0 / moduli[i]);
+                fracu[i] = __dmul_ru(s[i], cuda::RNS_MODULI_RECIP_RU[i]);
             }
             sumu = cuda::psum_ru<RNS_MODULI_SIZE>(fracu);
             sumu = __dsub_ru(sumu, (unsigned int) sumu);
@@ -241,7 +240,7 @@ namespace cuda{
         }
         // Computing the shifted lower bound
         for (int i = 0; i < RNS_MODULI_SIZE; i++) {
-            fracl[i] = __dmul_rd(s[i], 1.0 / moduli[i]);
+            fracl[i] = __dmul_rd(s[i], cuda::RNS_MODULI_RECIP_RD[i]);
         }
         suml = cuda::psum_rd<RNS_MODULI_SIZE>(fracl);
         suml = __dsub_rd(suml, (unsigned int) suml);
@@ -261,7 +260,6 @@ namespace cuda{
      * @param x - pointer to the input RNS number
      */
     DEVICE_CUDA_FORCEINLINE void rns_eval_compute_fast(er_float_ptr low, er_float_ptr upp, int * x) {
-        constexpr double moduli[ RNS_MODULI_SIZE ] = RNS_MODULI_VALUES;
         const double accuracy_constant = cuda::RNS_EVAL_ACCURACY;
         int s[RNS_MODULI_SIZE];
         double fracl[RNS_MODULI_SIZE];
@@ -272,8 +270,8 @@ namespace cuda{
         //1.0 / moduli[i] is evaluated at compile time
         cuda::rns_mul(s, x, cuda::RNS_PART_MODULI_PRODUCT_INVERSE);
         for (int i = 0; i < RNS_MODULI_SIZE; i++) {
-            fracl[i] = __dmul_rd(s[i], 1.0 / moduli[i]);
-            fracu[i] = __dmul_ru(s[i], 1.0 / moduli[i]);
+            fracl[i] = __dmul_rd(s[i], cuda::RNS_MODULI_RECIP_RD[i]);
+            fracu[i] = __dmul_ru(s[i], cuda::RNS_MODULI_RECIP_RU[i]);
         }
         //Pairwise summation of the fractions
         suml = cuda::psum_rd<RNS_MODULI_SIZE>(fracl);
@@ -300,7 +298,7 @@ namespace cuda{
             int k = MAX(-(ceil(log2(sumu))+1), cuda::RNS_EVAL_REF_FACTOR);
             cuda::rns_mul(s, s, cuda::RNS_POW2[k]);
             for(int i = 0; i < RNS_MODULI_SIZE; i++) {
-                fracu[i] = __dmul_ru(s[i], 1.0 / moduli[i]);
+                fracu[i] = __dmul_ru(s[i], cuda::RNS_MODULI_RECIP_RU[i]);
             }
             sumu = cuda::psum_ru<RNS_MODULI_SIZE>(fracu);
             sumu = __dsub_ru(sumu, (unsigned int) sumu);
@@ -308,7 +306,7 @@ namespace cuda{
         }
         // Computing the shifted lower bound
         for (int i = 0; i < RNS_MODULI_SIZE; i++) {
-            fracl[i] = __dmul_rd(s[i], 1.0 / moduli[i]);
+            fracl[i] = __dmul_rd(s[i], cuda::RNS_MODULI_RECIP_RD[i]);
         }
         suml = cuda::psum_rd<RNS_MODULI_SIZE>(fracl);
         suml = __dsub_rd(suml, (unsigned int) suml);
@@ -330,6 +328,8 @@ namespace cuda{
     DEVICE_CUDA_FORCEINLINE void rns_eval_compute_parallel(er_float_ptr low, er_float_ptr upp, int * x) {
         const double accuracy_constant = cuda::RNS_EVAL_ACCURACY;
         const int modulus = cuda::RNS_MODULI[threadIdx.x];
+        const double recip_rd = cuda::RNS_MODULI_RECIP_RD[threadIdx.x];
+        const double recip_ru = cuda::RNS_MODULI_RECIP_RU[threadIdx.x];
         int mr = -1;
         __shared__ double shl;
         __shared__ double shu;
@@ -338,8 +338,8 @@ namespace cuda{
         //Computing the products x_i * w_i (mod m_i) and the corresponding fractions (lower and upper)
         int s = cuda::mod_mul(x[threadIdx.x], cuda::RNS_PART_MODULI_PRODUCT_INVERSE[threadIdx.x], modulus);
         //Reduction
-        double suml = cuda::block_reduce_sum_rd(__dmul_rd(s, 1.0 / modulus), RNS_MODULI_SIZE);
-        double sumu = cuda::block_reduce_sum_ru(__dmul_ru(s, 1.0 / modulus), RNS_MODULI_SIZE);
+        double suml = cuda::block_reduce_sum_rd(__dmul_rd(s, recip_rd), RNS_MODULI_SIZE);
+        double sumu = cuda::block_reduce_sum_ru(__dmul_ru(s, recip_ru), RNS_MODULI_SIZE);
         //Broadcast sums among all threads
         if(threadIdx.x == 0){
             shl = suml;
@@ -393,7 +393,7 @@ namespace cuda{
             //The improvement is that the refinement factor depends on the value of X
             int k = MAX(-(ceil(log2(sumu))+1), cuda::RNS_EVAL_REF_FACTOR);
             s = cuda::mod_mul(s, cuda::RNS_POW2[k][threadIdx.x], modulus);
-            sumu = cuda::block_reduce_sum_ru(__dmul_ru(s, 1.0 / modulus), RNS_MODULI_SIZE);
+            sumu = cuda::block_reduce_sum_ru(__dmul_ru(s, recip_ru), RNS_MODULI_SIZE);
             //Broadcast sums among all threads
             if(threadIdx.x == 0) shu = sumu;
             __syncthreads();
@@ -402,7 +402,7 @@ namespace cuda{
             K += k;
         }
         //Computing the lower bound, broadcast does not required
-        suml = cuda::block_reduce_sum_rd(__dmul_rd(s, 1.0 / modulus), RNS_MODULI_SIZE);
+        suml = cuda::block_reduce_sum_rd(__dmul_rd(s, recip_rd), RNS_MODULI_SIZE);
         suml = __dsub_rd(suml, (unsigned int)suml);
         if(threadIdx.x == 0){
             //Setting the result lower and upper bounds of eval with appropriate correction (scaling by a power of two)
