@@ -6,7 +6,6 @@
 #define GRNS_MPINT_CUH
 
 #include <iostream>
-#include "roundings.cuh"
 #include "rnsdiv.cuh"
 
 /********************* Global precomputed constants *********************/

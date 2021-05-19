@@ -43,7 +43,9 @@ GCC_FORCEINLINE void rns_eval_compute(er_float_ptr low, er_float_ptr upp, int * 
     //Computing the products x_i * w_i (mod m_i) and the corresponding fractions (lower and upper)
     rns_mul(s, x, RNS_PART_MODULI_PRODUCT_INVERSE);
     for (int i = 0; i < RNS_MODULI_SIZE; i++) {
-        ddiv_rdu(&fracl[i], &fracu[i], (double)s[i], (double)RNS_MODULI[i]);
+        fracl[i] = dmul_rd(s[i], RNS_MODULI_RECIP_RD[i]);
+        fracu[i] = dmul_ru(s[i], RNS_MODULI_RECIP_RU[i]);
+        //ddiv_rdu(&fracl[i], &fracu[i], (double)s[i], (double)RNS_MODULI[i]);
     }
     //Pairwise summation of the fractions
     suml = psum_rd<RNS_MODULI_SIZE>(fracl);
@@ -122,7 +124,9 @@ GCC_FORCEINLINE void rns_eval_compute_fast(er_float_ptr low, er_float_ptr upp, i
     //Computing the products x_i * w_i (mod m_i) and the corresponding fractions (lower and upper)
     rns_mul(s, x, RNS_PART_MODULI_PRODUCT_INVERSE);
     for (int i = 0; i < RNS_MODULI_SIZE; i++) {
-        ddiv_rdu(&fracl[i], &fracu[i], (double)s[i], (double)RNS_MODULI[i]);
+        fracl[i] = dmul_rd(s[i], RNS_MODULI_RECIP_RD[i]);
+        fracu[i] = dmul_ru(s[i], RNS_MODULI_RECIP_RU[i]);
+        //ddiv_rdu(&fracl[i], &fracu[i], (double)s[i], (double)RNS_MODULI[i]);
     }
     //Pairwise summation of the fractions
     suml = psum_rd<RNS_MODULI_SIZE>(fracl);

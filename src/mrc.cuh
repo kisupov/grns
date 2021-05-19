@@ -47,7 +47,7 @@ GCC_FORCEINLINE void mrc(int * mr, int * x) {
  * Converts x from mixed-radix system to binary system.
  * The result is stored in target
  */
-void mrs_to_binary(mpz_t target, int * x) {
+GCC_FORCEINLINE void mrs_to_binary(mpz_t target, int * x) {
     mpz_t term;
     mpz_init(term);
     mpz_set_ui(target, 0);
@@ -63,7 +63,7 @@ void mrs_to_binary(mpz_t target, int * x) {
  * Compares RNS numbers using mixed-radix conversion
  * @return 1, if x > y; -1, if x < y; 0, if x = y
  */
-int mrc_compare_rns(int * x, int * y) {
+GCC_FORCEINLINE int mrc_compare_rns(int * x, int * y) {
     int mx[RNS_MODULI_SIZE];
     int my[RNS_MODULI_SIZE];
     mrc(mx, x);
