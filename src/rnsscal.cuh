@@ -253,7 +253,7 @@ namespace cuda{
         s_low[residueId] = __ddiv_rd(c, (double) modulus);
         s_upp[residueId] = __ddiv_ru(c, (double) modulus);
         __syncthreads();
-        for (unsigned int s = RNS_PARALLEL_REDUCTION_IDX; s > 0; s >>= 1) {
+        for (unsigned int s = cuda::PRECEDING_POW2(RNS_MODULI_SIZE); s > 0; s >>= 1) {
             if (residueId < s && residueId + s < RNS_MODULI_SIZE) {
                 s_low[residueId] = __dadd_rd((double) s_low[residueId], (double) s_low[residueId + s]);
                 s_upp[residueId] = __dadd_ru((double) s_upp[residueId], (double) s_upp[residueId + s]);
@@ -297,7 +297,7 @@ namespace cuda{
         __shared__ double S[RNS_MODULI_SIZE];
         S[residueId] = __ddiv_ru((double) c, (double) cuda::RNS_MODULI[residueId]);
         __syncthreads();
-        for (unsigned int s = RNS_PARALLEL_REDUCTION_IDX; s > 0; s >>= 1) {
+        for (unsigned int s = cuda::PRECEDING_POW2(RNS_MODULI_SIZE); s > 0; s >>= 1) {
             if (residueId < s && residueId + s < RNS_MODULI_SIZE) {
                 S[residueId] = __dadd_ru(S[residueId], S[residueId + s]);
             }
@@ -320,7 +320,7 @@ namespace cuda{
         //RNS_PART_MODULI_PRODUCT_POW2_RESIDUES[j-1][i] ->  M_i mod 2^j
         residue[residueId] = cuda::mod_mul(cuda::RNS_PART_MODULI_PRODUCT_POW2_RESIDUES[j - 1][residueId], c, pow2j);// (cuda::RNS_PART_MODULI_PRODUCT_POW2_RESIDUES[j - 1][residueId] * terms) % pow2j;
         __syncthreads();
-        for (unsigned int s = RNS_PARALLEL_REDUCTION_IDX; s > 0; s >>= 1) {
+        for (unsigned int s = cuda::PRECEDING_POW2(RNS_MODULI_SIZE); s > 0; s >>= 1) {
             if (residueId < s && residueId + s < RNS_MODULI_SIZE) {
                 residue[residueId] = residue[residueId] + residue[residueId + s];
             }

@@ -51,11 +51,12 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort =
 #define IS_POW_2(n) ((n & (n - 1)) == 0)
 #endif
 
-/*
- * Round up v to the next highest power of 2
- * https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
- */
 namespace cuda{
+
+    /*
+     * Round up v to the next highest power of 2
+     * https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+     */
     DEVICE_CUDA_FORCEINLINE unsigned int NEXT_POW2(unsigned int v){
         v--;
         v |= v >> 1;
@@ -65,6 +66,16 @@ namespace cuda{
         v |= v >> 16;
         v++;
         return v;
+    }
+
+    /*
+     * Largest power of two less than a number
+     */
+    DEVICE_CUDA_FORCEINLINE unsigned int PRECEDING_POW2(unsigned int n) {
+        if ((n & (n - 1)) == 0) {
+            return n / 2;
+        }
+        return (unsigned int) powf(2, floor(log2((double)n)));
     }
 }
 

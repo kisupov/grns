@@ -463,7 +463,6 @@ void rns_const_print(bool briefly) {
     std::cout << "- BIT-SIZE OF MODULI PRODUCT, LOG2(M): " << mpfr_get_d(log2, MPFR_RNDN) << std::endl;
     mpfr_clear(log2);
     std::cout << "- RNS_P2_SCALING_THRESHOLD, T: " << RNS_P2_SCALING_THRESHOLD << std::endl;
-    std::cout << "- RNS_PARALLEL_REDUCTION_IDX: " << RNS_PARALLEL_REDUCTION_IDX << std::endl;
     if (!briefly) {
         std::cout << "- RNS_MODULI, m_i: ";
         for (int i = 0; i < RNS_MODULI_SIZE; i++)

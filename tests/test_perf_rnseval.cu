@@ -333,7 +333,7 @@ namespace cuda{
         __syncthreads();
 
         //Parallel reduction
-        for (unsigned int i = RNS_PARALLEL_REDUCTION_IDX; i > 0; i >>= 1) {
+        for (unsigned int i = cuda::PRECEDING_POW2(RNS_MODULI_SIZE); i > 0; i >>= 1) {
             if (threadIdx.x < i && threadIdx.x + i < RNS_MODULI_SIZE) {
                 fracl[threadIdx.x] = __dadd_rd(fracl[threadIdx.x], fracl[threadIdx.x + i]);
                 fracu[threadIdx.x] = __dadd_ru(fracu[threadIdx.x], fracu[threadIdx.x + i]);
@@ -404,7 +404,7 @@ namespace cuda{
                 fracu[threadIdx.x] = __ddiv_ru(s, (double) modulus);
                 __syncthreads();
                 //Parallel reduction
-                for (unsigned int i = RNS_PARALLEL_REDUCTION_IDX; i > 0; i >>= 1) {
+                for (unsigned int i = cuda::PRECEDING_POW2(RNS_MODULI_SIZE); i > 0; i >>= 1) {
                     if (threadIdx.x < i && threadIdx.x + i < RNS_MODULI_SIZE) {
                         fracu[threadIdx.x] = __dadd_ru(fracu[threadIdx.x], fracu[threadIdx.x + i]);
                     }
@@ -422,7 +422,7 @@ namespace cuda{
              */
             fracl[threadIdx.x] = __ddiv_rd(s, (double) modulus);
             __syncthreads();
-            for (unsigned int i = RNS_PARALLEL_REDUCTION_IDX; i > 0; i >>= 1) {
+            for (unsigned int i = cuda::PRECEDING_POW2(RNS_MODULI_SIZE); i > 0; i >>= 1) {
                 if (threadIdx.x < i && threadIdx.x + i < RNS_MODULI_SIZE) {
                     fracl[threadIdx.x] = __dadd_rd(fracl[threadIdx.x], fracl[threadIdx.x + i]);
                 }
@@ -805,8 +805,8 @@ int main() {
     rns_eval_const_print();
     Logger::endSection(true);
     Logger::printSpace();
-    run_test1(ITERATIONS);
-    //run_test2();
+    //run_test1(ITERATIONS);
+    run_test2();
     Logger::endTestDescription();
     return 0;
 }

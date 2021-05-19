@@ -47,7 +47,7 @@ DEVICE_CUDA_FORCEINLINE static int higherPow(int * x){
     divExpans_d<CAMPARY_PRECISION, CAMPARY_PRECISION>(s[threadIdx.x], piece, (double)cuda::RNS_MODULI[threadIdx.x]);
     __syncthreads();
     //Parallel reduction
-    for (unsigned int i = RNS_PARALLEL_REDUCTION_IDX; i > 0; i >>= 1) {
+    for (unsigned int i = cuda::PRECEDING_POW2(RNS_MODULI_SIZE); i > 0; i >>= 1) {
         if (threadIdx.x < i && threadIdx.x + i < RNS_MODULI_SIZE) {
             s[threadIdx.x] = s[threadIdx.x] + s[threadIdx.x + i];
         }
